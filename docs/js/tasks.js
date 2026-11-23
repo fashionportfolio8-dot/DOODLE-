@@ -18,13 +18,13 @@ const WEAPON_LEVEL = {shotgun:2, sniper:3, rocket:4, chainsaw:5};
 const MAX_LEVEL = 10, TASK_XP = 100;
 const xpNeed = l => 100 * l;
 const TASK = {
-  pr: null, active: [], streak: 0, gainXp: 0, levelsGained: 0, toast: '', toastT: 0,
+  pr: null, active: [], completed: [], streak: 0, gainXp: 0, levelsGained: 0, toast: '', toastT: 0,
   prog() { if (!this.pr) { try { this.pr = JSON.parse(localStorage.getItem(TASK_KEY)); } catch (e) {} } if (!this.pr || !this.pr.level) this.pr = {level:1, xp:0, tasks:0}; return this.pr; },
   save() { try { localStorage.setItem(TASK_KEY, JSON.stringify(this.prog())); } catch (e) {} },
   unlocked(img) { const need = WEAPON_LEVEL[img]; return !need || this.prog().level >= need; },
   maxHp() { return 100 + (this.prog().level - 1) * 5; },
-  fill() { const have = this.active.map(t => t.id); const pool = TASK_POOL.filter(t => !have.includes(t.id)); while (this.active.length < 3 && pool.length) { const i = Math.floor(Math.random() * pool.length); this.active.push({...pool.splice(i, 1)[0], p: 0}); } },
-  start() { this.prog(); this.active = []; this.streak = 0; this.gainXp = 0; this.levelsGained = 0; this.fill(); },
+  fill() { const have = this.active.map(t => t.id); const pool = TASK_POOL.filter(t => !have.includes(t.id) && !this.completed.includes(t.id)); while (this.active.length < 3 && pool.length) { const i = Math.floor(Math.random() * pool.length); this.active.push({...pool.splice(i, 1)[0], p: 0}); } },
+  start() { this.prog(); this.active = []; this.completed = []; this.streak = 0; this.gainXp = 0; this.levelsGained = 0; this.fill(); },
   event(kind, via, amt = 1) {
     for (const t of [...this.active]) {
       if (t.k === 'streak') { if (kind === 'streak') { t.p = Math.max(t.p, amt); if (t.p >= t.n) this.done(t); } continue; }
@@ -32,7 +32,7 @@ const TASK = {
       if (hit) { t.p = Math.min(t.n, t.p + amt); if (t.p >= t.n) this.done(t); }
     }
   },
-  done(t) { this.active = this.active.filter(x => x !== t); const p = this.prog(); p.tasks++; p.xp += TASK_XP; this.gainXp += TASK_XP; this.say('TASK DONE: ' + t.t + ' · +' + TASK_XP + ' XP'); this.levels(); this.fill(); },
+  done(t) { this.active = this.active.filter(x => x !== t); this.completed.push(t.id); const p = this.prog(); p.tasks++; p.xp += TASK_XP; this.gainXp += TASK_XP; this.say('TASK DONE: ' + t.t + ' · +' + TASK_XP + ' XP'); this.levels(); this.fill(); },
   levels() { const p = this.prog(); while (p.level < MAX_LEVEL && p.xp >= xpNeed(p.level)) { p.xp -= xpNeed(p.level); p.level++; this.levelsGained++; this.say('LEVEL UP! Level ' + p.level + (UNLOCKS[p.level] ? ' · Unlocked ' + UNLOCKS[p.level] : ' · +5 HP')); } },
   say(m) { this.toast = m; this.toastT = 200; },
   onKill(via) { this.event('kill', via); this.streak++; this.event('streak', '', this.streak); },
