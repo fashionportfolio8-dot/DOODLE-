@@ -7,7 +7,7 @@ const DATA = {
   modes: [
     {id:'ffa',n:'Free For All',s:'Solo brawl',ok:1,kills:10,team:0},
     {id:'tdm',n:'Team Deathmatch',s:'Team brawl',ok:1,kills:25,team:1},
-    {id:'zom',n:'Zombie Survival',s:'Hold the line'},{id:'ctf',n:'Capture The Flag',s:'Steal the flag'},
+    {id:'zom',n:'Zombie Survival',s:'10 waves · co-op',ok:1},{id:'ctf',n:'Capture The Flag',s:'Steal the flag'},
     {id:'boss',n:'Boss Battle',s:'Outpost Titan'},{id:'br',n:'Battle Royale',s:'Last one standing'},
     {id:'clan',n:'Clan Wars',s:'Clan vs clan'},{id:'1v1',n:'1 vs 1',s:'Single duel'},
     {id:'2v2',n:'2 vs 2',s:'Double squad'},{id:'3v3',n:'3 vs 3',s:'Triple squad'},{id:'ai6',n:'1 vs 6 AI',s:'Overdrive'}

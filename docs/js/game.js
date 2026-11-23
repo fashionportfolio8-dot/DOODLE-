@@ -52,6 +52,7 @@ function hurt(t, d, owner, via){
   }
 }
 function boomAt(x, y, team, owner, send, via){
+  if (S.zom) zBoom(x, y);
   play('boom'); S.shake = 14; fxAdd('explosion', x, y, 26);
   for (let i = 0; i < 24; i++) S.pt.push({x, y, vx:(Math.random()*2-1)*6, vy:(Math.random()*2-1)*6-2, life:40, c:'#fb923c', s:2+Math.random()*3});
   if (send && !S.offline && owner === S.me.id && NET.s) NET.s.emit('fx', {type:'boom', x, y, team, via});
@@ -81,10 +82,12 @@ function step(){
     if (!S.offline && NET.s && now - S.sending > 50) { S.sending = now; NET.s.emit('pos', {x:me.x, y:me.y, face:me.face, ax:S.la.x, ay:S.la.y, hp:me.hp, sh:me.sh, dead:me.dead, wi:me.wi, char:me.char, team:me.team, name:me.name}); }
   } else { me.dead--; if (me.dead <= 0) spawn(me); }
   if (S.bot) botStep();
+  if (S.zom) zomStep();
   const targets = [me, S.bot].filter(Boolean);
   S.bl = S.bl.filter(b => {
-    if (b.melee) { for (const t of targets) if (!b.done && !t.dead && overlap(b, t) && isEnemy(b.team, b.owner) && t.id !== b.owner) { b.done = 1; hurt(t, b.dmg, b.owner, b.via); } b.life--; return b.life > 0; }
+    if (b.melee) { if (S.zom) for (const z of ZOM.zs) if (!b.done && !z.dead && overlap(b, z)) { b.done = 1; zHit(z, b.dmg, 'chainsaw'); } for (const t of targets) if (!b.done && !t.dead && overlap(b, t) && isEnemy(b.team, b.owner) && t.id !== b.owner) { b.done = 1; hurt(t, b.dmg, b.owner, b.via); } b.life--; return b.life > 0; }
     b.x += b.vx; b.y += b.vy; b.life--; if (S.smk.some(c => Math.hypot(b.x - c.x, b.y - c.y) < 70)) return false;
+    if (S.zom) { for (const z of ZOM.zs) if (!z.dead && b.x > z.x && b.x < z.x + z.w && b.y > z.y && b.y < z.y + z.h) { zHit(z, b.dmg, b.via); return false; } }
     if (b.life <= 0 || b.x < 0 || b.x > W || b.y < 0 || b.y > H || PL.some(s => b.x > s.x && b.x < s.x+s.w && b.y > s.y && b.y < s.y+s.h)) { if (b.rk && b.owner === me.id) boomAt(b.x, b.y, b.team, b.owner, true, 'rocket'); return false; }
     for (const t of targets) if (!t.dead && t.id !== b.owner && b.x > t.x && b.x < t.x+t.w && b.y > t.y && b.y < t.y+t.h) { if (b.rk) { if (b.owner === me.id) boomAt(b.x, b.y, b.team, b.owner, true, 'rocket'); } else hurt(t, b.dmg, b.owner, b.via); return false; }
     return true;
@@ -139,6 +142,7 @@ function drawHud(){
   g.fillStyle = '#eaf2ff'; g.font = 'bold 12px system-ui';
   g.fillText(w.n.toUpperCase() + '  ' + (w.grn ? 'GRN ' + me.nades : (w.melee ? 'MELEE' : (me.rl > 0 ? 'RELOADING' : me.mag[me.wi] + '/' + w.am))), 20, H-20);
   g.fillText('MED ' + me.meds, 250, H-20);
+  if (S.zom) zomHud(g);
   TASK.draw(g); if (me.dead) centerText('YOU DIED - RESPAWNING');
   if (S.now_ < S.start) centerText('GET READY');
   if (TOUCH) drawTouch();
@@ -157,6 +161,7 @@ function draw(){
   g.drawImage(im('assets/maps/map' + (S.map+1) + '.jpg'), 0, 0, W, H);
   g.fillStyle = 'rgba(20,12,4,.25)'; g.fillRect(0, 0, W, H);
   for (const s of PL) { g.fillStyle = '#3b2a1acc'; g.fillRect(s.x, s.y, s.w, s.h); g.fillStyle = '#c2a06a'; g.fillRect(s.x, s.y, s.w, 4); }
+  if (S.zom) zomDraw(g);
   for (const id in S.others) drawPlayer(S.others[id], false);
   if (S.bot && !S.bot.dead) drawPlayer(S.bot, false);
   drawPlayer(S.me, true);
@@ -189,13 +194,13 @@ cv.addEventListener('pointermove', e => { const q = toG(e); if (e.pointerType ==
 const pup = e => { if (e.pointerType === 'mouse') MO.d = false; delete PT[e.pointerId]; };
 cv.addEventListener('pointerup', pup); cv.addEventListener('pointercancel', pup);
 function startMatch(mode, map, offline, roster, at){
-  S.mode = mode; S.map = map; S.offline = offline; S.bl = []; S.nd = []; S.pt = []; S.fx = []; S.smk = []; S.pk = []; S.pkT = 0; S.paused = false; S.sc = {}; S.feed = []; S.others = {};
+  S.mode = mode; S.map = map; S.offline = offline; S.bl = []; S.nd = []; S.pt = []; S.fx = []; S.smk = []; S.pk = []; S.pkT = 0; S.paused = false; S.zom = false; S.sc = {}; S.feed = []; S.others = {};
   const me = roster.find(p => p.id === (NET.id || 'me')) || {id:'me', name:'Commander', team:0, char:0};
   S.me = mk(me.id, me.name, me.team, me.char); spawn(S.me); S.me.wi = (typeof SEL !== 'undefined' && SEL.wi) || 0;
   S.roster = roster; S.bot = null;
   if (offline) { S.bot = mk('bot', 'BOT', 1, 6); spawn(S.bot); S.roster = [S.me, S.bot]; }
   S.start = at || Date.now(); S.end = S.start + 5*60*1000; S.on = true; S.prevJ = false;
-  TASK.start(); go('game'); music('battle');
+  TASK.start(); if (mode.id === 'zom') zStart(); go('game'); music('battle');
   try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(()=>{}); } catch(e) {}
 }
 function startOnline(d){ startMatch(DATA.modes.find(m => m.id === d.mode), d.map, false, d.players, d.at); }

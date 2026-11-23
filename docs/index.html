@@ -36,7 +36,7 @@
 
 <section id="maps" class="scr">
   <div class="top"><button class="btn" onclick="go('home')">← BACK</button><h2 id="mt">SELECT ARENA</h2><span></span></div>
-  <div class="grid" id="mpg" style="grid-template-columns:repeat(5,1fr);flex:1;align-content:center"></div>
+  <div class="grid" id="mpg" style="grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));flex:1;min-height:0"></div>
   <div class="row" style="justify-content:space-between"><button class="btn amb" onclick="startOffline()">PRACTICE VS BOTS</button><button class="btn lime" onclick="openCreate()">CREATE ROOM</button></div>
 </section>
 
@@ -109,6 +109,7 @@
 <script src="js/audio.js"></script>
 <script src="js/net.js"></script>
 <script src="js/tasks.js"></script>
+<script src="js/zombie.js"></script>
 <script src="js/game.js"></script>
 <script src="js/ui.js"></script>
 </body>

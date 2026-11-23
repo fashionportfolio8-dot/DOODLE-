@@ -15,7 +15,7 @@ function tMus(){ AUDIO.mus = !AUDIO.mus; $('mus').textContent = 'MUSIC: ' + (AUD
 function render(){
   $('hImg').src = 'assets/characters/ch' + (SEL.char+1) + '.png';
   $('mg').innerHTML = DATA.modes.map((m, i) => `<div class="card${i === SEL.mode ? ' sel' : ''}${m.ok ? '' : ' off'}" onclick="pickMode(${i})"><img src="${modeIcon(i)}"><b>${m.n}</b><small class="mu">${m.s}${m.ok ? '' : ' · soon'}</small></div>`).join('');
-  $('mpg').innerHTML = DATA.maps.map((m, i) => `<div class="card${i === SEL.map ? ' sel' : ''}" onclick="SEL.map=${i};render()"><img src="assets/maps/map${i+1}.jpg" style="height:120px;width:100%;object-fit:cover;border-radius:8px"><small>${m}</small></div>`).join('');
+  $('mpg').innerHTML = DATA.maps.map((m, i) => `<div class="card${i === SEL.map ? ' sel' : ''}" onclick="SEL.map=${i};render()"><img class="mimg" src="assets/maps/map${i+1}.jpg"><small>${m}</small></div>`).join('');
   $('mt').textContent = 'SELECT ARENA · ' + DATA.modes[SEL.mode].n.toUpperCase();
   $('cg').innerHTML = DATA.chars.map((c, i) => `<div class="card${i === SEL.char ? ' sel' : ''}" onclick="SEL.char=${i};setChar(${i});render()"><img src="assets/characters/ch${i+1}.png" style="height:80px"><small>${c[0]}</small></div>`).join('');
   $('lImg').src = 'assets/characters/ch' + (SEL.char+1) + '.png'; $('lName').textContent = DATA.chars[SEL.char][0]; $('lAb').textContent = DATA.chars[SEL.char][1];
@@ -48,6 +48,7 @@ function openJoin(){ const name = ($('pname').value || 'Commander').trim(); cons
   joinRoom(code, name, r => { if (!r.ok) return alert(r.err || 'Could not join'); go('room'); }); }
 function startOnlineMatch(){ const m = DATA.modes[SEL.mode]; startRoom(m.id, SEL.map); }
 function startOffline(){ const m = DATA.modes[SEL.mode]; if (!m.ok) return;
+  if (m.id === 'zom' && SEL.char !== 5 && SEL.char !== 7) return alert('Zombie Survival: choose Night Ops or Commando Red in the Armory first.');
   S.wi0 = SEL.wi;
   startMatch(m, SEL.map, true, [{id:'me', name:($('pname').value || 'Commander'), team:0, char:SEL.char}], Date.now() + 1500);
 }
