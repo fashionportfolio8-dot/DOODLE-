@@ -10,8 +10,10 @@ function connect(){
   s.on('pos', d => { S.others[d.id] = Object.assign(S.others[d.id] || {}, d); });
   s.on('shot', d => S.bl.push({x:d.x,y:d.y,vx:d.vx,vy:d.vy,dmg:d.dmg,rk:d.rk,via:d.via,life:d.life,team:d.team,owner:d.id,melee:d.melee,w:d.w,h:d.h}));
   s.on('fx', d => boomAt(d.x, d.y, d.team, d.id, false, d.via));
-  s.on('score', d => { S.sc = d.scores; S.feed.unshift([d.feed[0] + ' > ' + d.feed[1], 'var(--lime)']); S.feed = S.feed.slice(0,4); });
+  s.on('score', d => { S.sc = d.scores; S.feed.unshift([d.feed[0] + ' > ' + d.feed[1], '#b8f53a']); S.feed = S.feed.slice(0,4); });
   s.on('left', id => { delete S.others[id]; });
+  s.on('pickup:spawn', d => { if (!S.pk.some(p => p.id === d.id)) S.pk.push(d); });
+  s.on('pickup:collected', id => { S.pk = S.pk.filter(p => p.id !== id); });
   s.on('killed', d => TASK.onKill(d.via));
   s.on('signal', d => voiceSignal(d.from, d.data));
   return s;
