@@ -5,10 +5,12 @@ const PL = [{x:0,y:500,w:960,h:40},{x:120,y:390,w:200,h:18},{x:560,y:390,w:240,h
 const SP = [[80,300],[840,200],[480,120],[200,120]];
 const BTN = {fire:{x:880,y:430,r:50}, jump:{x:780,y:470,r:40}, jet:{x:780,y:390,r:34}, grn:{x:700,y:470,r:34}, med:{x:700,y:390,r:32}};
 const K = {}, PT = {}, MO = {x:W/2, y:H/2, d:false};
+const MAX_NADES=5, MAX_MEDS=3, MAX_SMOKE=4, GRENADE_COOLDOWN=28;
+function clearInputs(){ for(const k in K) delete K[k]; for(const k in PT) delete PT[k]; MO.d=false; }
 const S = {on:false, mode:null, map:0, me:null, bot:null, others:{}, roster:[], bl:[], nd:[], pt:[], fx:[], sc:{}, feed:[], start:0, end:0, prevJ:false, la:{x:1,y:0}, offline:true, shake:0, sending:0};
 const rnd = a => a[Math.floor(Math.random() * a.length)];
-const mk = (id, name, team, char) => ({id, name, team, char, x:0, y:0, w:26, h:38, vx:0, vy:0, face:1, ground:false, hp:100, sh:100, fuel:100, dead:0, wi:0, mag:DATA.weapons.map(w => w.am), rl:0, cool:0, nades:2, meds:1, smk:2, ax:1, ay:0});
-function spawn(p){ const s = rnd(SP); Object.assign(p, {x:s[0], y:s[1], vx:0, vy:0, hp:(p === S.me ? TASK.maxHp() : 100), sh:100, fuel:100, dead:0, mag:DATA.weapons.map(w => w.am), rl:0, cool:0, nades:2, meds:1, smk:2}); }
+const mk = (id, name, team, char) => ({id, name, team, char, x:0, y:0, w:26, h:38, vx:0, vy:0, face:1, ground:false, hp:100, sh:100, fuel:100, dead:0, wi:0, mag:DATA.weapons.map(w => w.am), rl:0, cool:0, nades:2, meds:1, smk:2, ax:1, ay:0, rlWeapon:null});
+function spawn(p){ const s = rnd(SP); Object.assign(p, {x:s[0], y:s[1], vx:0, vy:0, hp:(p === S.me ? TASK.maxHp() : 100), sh:100, fuel:100, dead:0, mag:DATA.weapons.map(w => w.am), rl:0, cool:0, nades:Math.min(MAX_NADES,2), meds:Math.min(MAX_MEDS,1), smk:Math.min(MAX_SMOKE,2), rlWeapon:null}); }
 function isEnemy(team, id){ if (!S.mode || !S.mode.team) return id !== S.me.id; return team !== S.me.team; }
 function overlap(b, p){ return b.x < p.x + p.w && b.x + b.w > p.x && b.y < p.y + p.h && b.y + b.h > p.y; }
 function moveX(e){ e.x += e.vx; for (const s of PL) if (e.x < s.x+s.w && e.x+e.w > s.x && e.y < s.y+s.h && e.y+e.h > s.y) { if (e.vx > 0) e.x = s.x - e.w; else if (e.vx < 0) e.x = s.x + s.w; } e.x = Math.max(0, Math.min(W - e.w, e.x)); }
@@ -37,19 +39,19 @@ function sendShot(b){ if (!S.offline && NET.s) NET.s.emit('shot', {x:b.x,y:b.y,v
 function addShot(b){ S.bl.push(b); sendShot(b); }
 function fire(ax, ay){
   const me = S.me, w = DATA.weapons[me.wi];
-  if (w.grn) return grenade(); if (!TASK.unlocked(w.img)) return;
+  if (w.grn) { if (me.cool > 0) return; me.cool = GRENADE_COOLDOWN; grenade(); return; } if (!TASK.unlocked(w.img)) return;
   if (me.rl > 0 || me.cool > 0) return;
   if (me.mag[me.wi] <= 0) return reload();
-  const a0 = Math.atan2(ay, ax); me.cool = w.cd; me.mag[me.wi]--; me.face = Math.cos(a0) >= 0 ? 1 : -1;
+  const a0 = Math.atan2(ay, ax); me.cool = w.cd; if (!w.melee) me.mag[me.wi]--; me.face = Math.cos(a0) >= 0 ? 1 : -1;
   if (w.melee) { play('saw'); addShot({x:me.x+me.w/2+me.face*34-30, y:me.y+me.h/2-30, w:60, h:60, melee:1, dmg:w.dmg*3, life:2, team:me.team, owner:me.id, via:'chainsaw'}); return; }
   play(w.snd);
   for (let i = 0; i < w.pel; i++) { const a = a0 + (w.pel > 1 ? (i/(w.pel-1) - .5) * w.sp : 0);
     addShot({x:me.x+me.w/2+Math.cos(a)*22, y:me.y+me.h/2+Math.sin(a)*22, vx:Math.cos(a)*w.spd, vy:Math.sin(a)*w.spd, dmg:w.dmg, rk:w.boom, life:90, team:me.team, owner:me.id, via:w.img}); }
   fxAdd('spark', me.x+me.w/2+Math.cos(a0)*30, me.y+me.h/2+Math.sin(a0)*30, 8);
 }
-function reload(){ const me = S.me, w = DATA.weapons[me.wi]; if (me.rl > 0 || me.dead || w.melee || w.grn || me.mag[me.wi] >= w.am) return; me.rl = 60; play('reload'); }
-function grenade(){ const me = S.me; if (me.dead || me.nades <= 0) return; me.nades--; const L = Math.hypot(S.la.x, S.la.y) || 1; S.nd.push({x:me.x+me.w/2, y:me.y+me.h/2, vx:S.la.x/L*9, vy:S.la.y/L*9-3, t:110}); play('throw'); }
-function useMed(){ const me = S.me; if (me.dead || me.meds <= 0 || me.hp >= 100) return; me.meds--; me.hp = Math.min(100, me.hp + 50); play('med'); TASK.onMed(); for (let i = 0; i < 12; i++) S.pt.push(part(me.x+me.w/2, me.y+me.h/2, '#22c55e')); }
+function reload(){ const me = S.me, w = DATA.weapons[me.wi]; if (me.rl > 0 || me.dead || w.melee || w.grn || me.mag[me.wi] >= w.am) return; me.rl = 60; me.rlWeapon = me.wi; play('reload'); }
+function grenade(){ const me = S.me; if (!S.on || S.paused || me.dead || me.nades <= 0) return; me.nades--; const L = Math.hypot(S.la.x, S.la.y) || 1; S.nd.push({x:me.x+me.w/2, y:me.y+me.h/2, vx:S.la.x/L*9, vy:S.la.y/L*9-3, t:110}); play('throw'); }
+function useMed(){ const me = S.me; if (!S.on || S.paused || me.dead || me.meds <= 0 || me.hp >= 100) return; me.meds--; me.hp = Math.min(100, me.hp + 50); play('med'); TASK.onMed(); for (let i = 0; i < 12; i++) S.pt.push(part(me.x+me.w/2, me.y+me.h/2, '#22c55e')); }
 function part(x, y, c){ return {x, y, vx:(Math.random()*2-1)*5, vy:(Math.random()*2-1)*5-1, life:40, c, s:2+Math.random()*3}; }
 function fxAdd(im_, x, y, t){ S.fx.push({im:im_, x, y, t}); }
 function hurt(t, d, owner, via){
@@ -58,7 +60,7 @@ function hurt(t, d, owner, via){
   if (t.hp <= 0) {
     t.dead = 90; play('die'); t.lb = owner; if (t === S.me) { S.pk.push({x:t.x+t.w/2, y:t.y+t.h-24, k:'body'}); TASK.onDeath(); } if (owner === S.me.id && t !== S.me) TASK.onKill(via);
     if (t === S.me && !S.offline && NET.s) NET.s.emit('died', {killer:owner, via:via});
-    if (S.offline) { S.sc[owner] = S.sc[owner] || {k:0,d:0}; if (owner !== t.id) S.sc[owner].k++; S.sc[t.id] = S.sc[t.id] || {k:0,d:0}; S.sc[t.id].d++; S.feed.unshift([(owner === 'bot' ? '[BOT]' : S.me.name) + ' > ' + (t === S.me ? S.me.name : '[BOT]'), 'var(--lime)']); S.feed = S.feed.slice(0,4); }
+    if (S.offline) { S.sc[owner] = S.sc[owner] || {k:0,d:0}; if (owner !== t.id) S.sc[owner].k++; S.sc[t.id] = S.sc[t.id] || {k:0,d:0}; S.sc[t.id].d++; S.feed.unshift([(owner === 'bot' ? '[BOT]' : S.me.name) + ' > ' + (t === S.me ? S.me.name : '[BOT]'), '#b8f53a']); S.feed = S.feed.slice(0,4); }
   }
 }
 function boomAt(x, y, team, owner, send, via){
@@ -74,7 +76,7 @@ function botStep(){
   b.vx = Math.abs(dx) > 200 ? Math.sign(dx) * 1.8 : (Math.abs(dx) > 110 ? Math.sign(dx) : 0);
   if (b.ground && dy < -90 && Math.random() < .02) b.vy = -11;
   if (b.cool > 0) b.cool--;
-  if (!me.dead && b.cool <= 0 && Math.random() < .04) { const ax = me.x+me.w/2-(b.x+b.w/2), ay = me.y+me.h/2-(b.y+b.h/2)+(Math.random()*40-20), L = Math.hypot(ax, ay) || 1; S.bl.push({x:b.x+b.w/2, y:b.y+b.h/2, vx:ax/L*12, vy:ay/L*12, dmg:10, life:100, team:1, owner:'bot', via:'pistol'}); b.cool = 60; play('pistol'); }
+  if (!me.dead && b.cool <= 0 && Math.random() < .04) { const ax = me.x+me.w/2-(b.x+b.w/2), ay = me.y+me.h/2-(b.y+b.h/2)+(Math.random()*40-20), L = Math.hypot(ax, ay) || 1; S.bl.push({x:b.x+b.w/2, y:b.y+b.h/2, vx:ax/L*12, vy:ay/L*12, dmg:10, life:100, team:1, owner:'bot', via:'pistol'}); b.ax=ax/L; b.ay=ay/L; b.wi=0; b.cool = 60; play('pistol'); }
   moveX(b); moveY(b);
 }
 function step(){
@@ -87,7 +89,7 @@ function step(){
     if (jp && me.ground) me.vy = -11;
     if (I.jt && me.fuel > 0) { me.vy = Math.max(me.vy - .9, -5); me.fuel -= 1.1; TASK.onJet(); } else me.fuel = Math.min(100, me.fuel + (me.ground ? 1.2 : .4));
     moveX(me); moveY(me); if (me.cool > 0) me.cool--;
-    if (me.rl > 0) { me.rl--; if (me.rl === 0) me.mag[me.wi] = DATA.weapons[me.wi].am; }
+    if (me.rl > 0) { me.rl--; if (me.rl === 0) { const ri=Number.isInteger(me.rlWeapon)?me.rlWeapon:me.wi; me.mag[ri]=DATA.weapons[ri].am; me.rlWeapon=null; } }
     if (I.fi) fire(I.ax, I.ay);
     if (!S.offline && NET.s && now - S.sending > 50) { S.sending = now; NET.s.emit('pos', {x:me.x, y:me.y, face:me.face, ax:S.la.x, ay:S.la.y, hp:me.hp, sh:me.sh, dead:me.dead, wi:me.wi, char:me.char, team:me.team, name:me.name}); }
   } else { me.dead--; if (me.dead <= 0) spawn(me); }
@@ -98,8 +100,8 @@ function step(){
     if (b.melee) { if (S.zom) for (const z of ZOM.zs) if (!b.done && !z.dead && overlap(b, z)) { b.done = 1; zHit(z, b.dmg, 'chainsaw'); } for (const t of targets) if (!b.done && !t.dead && overlap(b, t) && isEnemy(b.team, b.owner) && t.id !== b.owner) { b.done = 1; hurt(t, b.dmg, b.owner, b.via); } b.life--; return b.life > 0; }
     b.x += b.vx; b.y += b.vy; b.life--; if (S.smk.some(c => Math.hypot(b.x - c.x, b.y - c.y) < 70)) return false;
     if (S.zom) { for (const z of ZOM.zs) if (!z.dead && b.x > z.x && b.x < z.x + z.w && b.y > z.y && b.y < z.y + z.h) { zHit(z, b.dmg, b.via); return false; } }
-    if (b.life <= 0 || b.x < 0 || b.x > W || b.y < 0 || b.y > H || PL.some(s => b.x > s.x && b.x < s.x+s.w && b.y > s.y && b.y < s.y+s.h)) { if (b.rk && b.owner === me.id) boomAt(b.x, b.y, b.team, b.owner, true, 'rocket'); return false; }
-    for (const t of targets) if (!t.dead && t.id !== b.owner && b.x > t.x && b.x < t.x+t.w && b.y > t.y && b.y < t.y+t.h) { if (b.rk) { if (b.owner === me.id) boomAt(b.x, b.y, b.team, b.owner, true, 'rocket'); } else hurt(t, b.dmg, b.owner, b.via); return false; }
+    if (b.life <= 0 || b.x < 0 || b.x > W || b.y < 0 || b.y > H || PL.some(s => b.x > s.x && b.x < s.x+s.w && b.y > s.y && b.y < s.y+s.h)) { if (b.rk) boomAt(b.x, b.y, b.team, b.owner, true, 'rocket'); return false; }
+    for (const t of targets) if (!t.dead && t.id !== b.owner && isEnemy(b.team,b.owner) && b.x > t.x && b.x < t.x+t.w && b.y > t.y && b.y < t.y+t.h) { if (b.rk) boomAt(b.x, b.y, b.team, b.owner, true, 'rocket'); else hurt(t, b.dmg, b.owner, b.via); return false; }
     return true;
   });
   S.nd = S.nd.filter(n => {
@@ -109,9 +111,10 @@ function step(){
     if (n.t <= 0) { if (n.smoke) S.smk.push({x:n.x, y:n.y, t:300}); else boomAt(n.x, n.y, me.team, me.id, true, 'grenade'); return false; } return true;
   });
   S.smk = S.smk.filter(c => (c.t -= 1) > 0);
-  if (!me.dead) S.pk = S.pk.filter(k => { if (Math.hypot(k.x - (me.x + me.w/2), k.y - (me.y + me.h/2)) < 34) { pickUp(k.k); return false; } return true; });
+  if (!me.dead) S.pk = S.pk.filter(k => { if (Math.hypot(k.x - (me.x + me.w/2), k.y - (me.y + me.h/2)) < 34 && !k.claimPending) { if (S.offline) { pickUp(k.k); return false; } if (NET.s) { k.claimPending=true; NET.s.emit('pickup:collect',{id:k.id}); } } return true; });
   S.pkT = (S.pkT || 0) + 1;
-  if (S.pkT > 900 && S.pk.length < 3) { S.pkT = 0; const p = rnd(PL.slice(1)); S.pk.push({x:p.x + 30 + Math.random() * (p.w - 60), y:p.y - 22, k:rnd(['ammo', 'shield', 'med'])}); }
+  const pickupHost=S.offline || (NET.players||[]).some(p=>p.id===NET.id && p.host);
+  if (pickupHost && S.pkT > 900 && S.pk.length < 3) { S.pkT = 0; const p = rnd(PL.slice(1)), drop={id:'drop-'+(NET.id||'local')+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),x:p.x+30+Math.random()*(p.w-60),y:p.y-22,k:rnd(['ammo','shield','med'])}; S.pk.push(drop); if(!S.offline && NET.s) NET.s.emit('pickup:spawn',drop); }
   S.pt = S.pt.filter(q => { q.x += q.vx; q.y += q.vy; q.vy += .2; q.life--; return q.life > 0; });
   S.fx = S.fx.filter(f => { f.t--; return f.t > 0; });
   if (S.sc && S.mode && S.mode.kills) {
@@ -226,27 +229,32 @@ function loop(){ S.now_ = Date.now(); step(); if (S.on) draw(); requestAnimation
 const TOUCH = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
-  if (e.repeat) return; K[e.code] = true; if (!S.on) return;
+  if (e.repeat || !S.on) return;
+  if (S.paused) { if (e.code === 'Escape') resumeGame(); return; }
+  K[e.code] = true;
   if (e.code === 'KeyG') grenade(); if (e.code === 'KeyQ') throwSmoke(); if (e.code === 'KeyE') useMed(); if (e.code === 'KeyR') reload();
-  const n = parseInt(e.key); if (n >= 1 && n <= DATA.weapons.length) if (TASK.unlocked(DATA.weapons[n-1].img)) S.me.wi = n-1;
+  const n = parseInt(e.key); if (n >= 1 && n <= DATA.weapons.length) selectWeapon(n-1);
   if (e.code === 'Escape') togglePause();
 });
-addEventListener('keyup', e => K[e.code] = false);
+addEventListener('keyup', e => { delete K[e.code]; });
+addEventListener('blur', clearInputs);
+document.addEventListener('visibilitychange', () => { if (document.hidden) { clearInputs(); if (S.on && !S.paused) togglePause(); } });
 function toG(e){ const r = cv.getBoundingClientRect(); return {x:(e.clientX-r.left)*W/r.width, y:(e.clientY-r.top)*H/r.height}; }
-cv.addEventListener('pointerdown', e => { if (!S.on) return; const q = toG(e);
-  if (e.pointerType === 'mouse') { MO.d = true; MO.x = q.x; MO.y = q.y; return; }
-  if (q.y > H-84 && q.x > 200 && q.x < 620) { const wi = Math.floor((q.x-200)/70); if (wi < DATA.weapons.length && TASK.unlocked(DATA.weapons[wi].img)) S.me.wi = wi; return; }
-  cv.setPointerCapture(e.pointerId);
+function updateMouseAim(q){ if(!S.me)return; const dx=q.x-(S.me.x+S.me.w/2),dy=q.y-(S.me.y+S.me.h/2),L=Math.hypot(dx,dy); if(L>5)S.la={x:dx/L,y:dy/L}; }
+function selectWeapon(i){ if(!S.me || !Number.isInteger(i) || i<0 || i>=DATA.weapons.length || !TASK.unlocked(DATA.weapons[i].img)) return false; S.me.wi=i; return true; }
+cv.addEventListener('pointerdown', e => { if (!S.on || S.paused) return; const q = toG(e); cv.setPointerCapture(e.pointerId);
+  if (e.pointerType === 'mouse') { MO.d = true; MO.x = q.x; MO.y = q.y; updateMouseAim(q); return; }
+  if (q.y > H-84 && q.x > 200 && q.x < 620) { const wi = Math.floor((q.x-200)/70); if (wi < DATA.weapons.length) selectWeapon(wi); return; }
   let t = q.x < W*.45 ? 'stick' : 'aim';
   for (const n in BTN) { const b = BTN[n]; if (Math.hypot(q.x-b.x, q.y-b.y) < b.r+6) { t = n; if (n === 'grn') grenade(); if (n === 'med') useMed(); } }
   PT[e.pointerId] = {t, ox:q.x, oy:q.y, x:q.x, y:q.y}; });
-cv.addEventListener('pointermove', e => { const q = toG(e); if (e.pointerType === 'mouse') { MO.x = q.x; MO.y = q.y; return; } const o = PT[e.pointerId]; if (o) { o.x = q.x; o.y = q.y; } });
+cv.addEventListener('pointermove', e => { const q = toG(e); if (e.pointerType === 'mouse') { MO.x = q.x; MO.y = q.y; updateMouseAim(q); return; } const o = PT[e.pointerId]; if (o) { o.x = q.x; o.y = q.y; } });
 const pup = e => { if (e.pointerType === 'mouse') MO.d = false; delete PT[e.pointerId]; };
-cv.addEventListener('pointerup', pup); cv.addEventListener('pointercancel', pup);
+cv.addEventListener('pointerup', pup); cv.addEventListener('pointercancel', pup); window.addEventListener('pointerup', pup); window.addEventListener('pointercancel', pup);
 function startMatch(mode, map, offline, roster, at){
   S.mode = mode; S.map = map; S.offline = offline; S.bl = []; S.nd = []; S.pt = []; S.fx = []; S.smk = []; S.pk = []; S.pkT = 0; S.paused = false; S.zom = false; S.sc = {}; S.feed = []; S.others = {};
   const me = roster.find(p => p.id === (NET.id || 'me')) || {id:'me', name:'Commander', team:0, char:0};
-  S.me = mk(me.id, me.name, me.team, me.char); spawn(S.me); S.me.wi = (typeof SEL !== 'undefined' && SEL.wi) || 0;
+  S.me = mk(me.id, me.name, me.team, me.char); spawn(S.me); selectWeapon((typeof SEL !== 'undefined' && SEL.wi) || 0);
   S.roster = roster; S.bot = null;
   if (offline) { S.bot = mk('bot', 'BOT', 1, 6); spawn(S.bot); S.roster = [S.me, S.bot]; }
   S.start = at || Date.now(); S.end = S.start + 5*60*1000; S.on = true; S.prevJ = false;
@@ -259,15 +267,15 @@ cv.width = W; cv.height = H;
 loop();
 
 // ---- Smoke grenade (Q), pickups, pause ----
-function throwSmoke(){ const me = S.me; if (me.dead || me.smk <= 0) return; me.smk--; const L = Math.hypot(S.la.x, S.la.y) || 1; S.nd.push({x:me.x+me.w/2, y:me.y+me.h/2, vx:S.la.x/L*8, vy:S.la.y/L*8-3, t:90, smoke:1}); play('throw'); }
+function throwSmoke(){ const me = S.me; if (!S.on || S.paused || me.dead || me.smk <= 0) return; me.smk--; const L = Math.hypot(S.la.x, S.la.y) || 1; S.nd.push({x:me.x+me.w/2, y:me.y+me.h/2, vx:S.la.x/L*8, vy:S.la.y/L*8-3, t:90, smoke:1}); play('throw'); }
 function pickUp(k){
   const me = S.me;
-  if (k === 'ammo') { me.mag = DATA.weapons.map(w => w.am); me.nades += 1; }
+  if (k === 'ammo') { me.mag = DATA.weapons.map((w,i) => w.melee || w.grn ? me.mag[i] : w.am); me.nades = Math.min(MAX_NADES,me.nades+1); }
   else if (k === 'shield') me.sh = Math.min(100, me.sh + 50);
-  else if (k === 'med') me.meds += 1;
-  else if (k === 'body') { me.nades += 2; me.meds += 1; }
+  else if (k === 'med') me.meds = Math.min(MAX_MEDS,me.meds+1);
+  else if (k === 'body') { me.nades = Math.min(MAX_NADES,me.nades+2); me.meds = Math.min(MAX_MEDS,me.meds+1); }
   play('med');
 }
-function togglePause(){ if (!S.on) return; if (!S.paused) { S.paused = true; S.pauseAt = Date.now(); $('pauseov').style.display = 'flex'; $('pmic').textContent = 'MIC: ' + (NET.mic ? 'ON' : 'OFF'); } else resumeGame(); }
-function resumeGame(){ if (!S.paused) return; S.paused = false; const d = Date.now() - S.pauseAt; S.end += d; S.start += d; $('pauseov').style.display = 'none'; }
+function togglePause(){ if (!S.on) return; if (!S.paused) { clearInputs(); S.paused = true; S.pauseAt = Date.now(); $('pauseov').style.display = 'flex'; $('pmic').textContent = 'MIC: ' + (NET.mic ? 'ON' : 'OFF'); } else resumeGame(); }
+function resumeGame(){ if (!S.paused) return; clearInputs(); S.paused = false; const d = Date.now() - S.pauseAt; S.end += d; S.start += d; $('pauseov').style.display = 'none'; }
 function leaveGame(){ S.paused = false; S.on = false; $('pauseov').style.display = 'none'; go('home'); music('menu'); }
