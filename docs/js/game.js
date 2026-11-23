@@ -7,8 +7,8 @@ const BTN = {jump:{x:900,y:470,r:36}, jet:{x:820,y:400,r:30}, grn:{x:760,y:480,r
 const K = {}, PT = {}, MO = {x:W/2, y:H/2, d:false};
 const S = {on:false, mode:null, map:0, me:null, bot:null, others:{}, roster:[], bl:[], nd:[], pt:[], fx:[], sc:{}, feed:[], start:0, end:0, prevJ:false, la:{x:1,y:0}, offline:true, shake:0, sending:0};
 const rnd = a => a[Math.floor(Math.random() * a.length)];
-const mk = (id, name, team, char) => ({id, name, team, char, x:0, y:0, w:26, h:38, vx:0, vy:0, face:1, ground:false, hp:100, sh:100, fuel:100, dead:0, wi:0, mag:DATA.weapons.map(w => w.am), rl:0, cool:0, nades:2, meds:1, ax:1, ay:0});
-function spawn(p){ const s = rnd(SP); Object.assign(p, {x:s[0], y:s[1], vx:0, vy:0, hp:(p === S.me ? TASK.maxHp() : 100), sh:100, fuel:100, dead:0, mag:DATA.weapons.map(w => w.am), rl:0, cool:0, nades:2, meds:1}); }
+const mk = (id, name, team, char) => ({id, name, team, char, x:0, y:0, w:26, h:38, vx:0, vy:0, face:1, ground:false, hp:100, sh:100, fuel:100, dead:0, wi:0, mag:DATA.weapons.map(w => w.am), rl:0, cool:0, nades:2, meds:1, smk:2, ax:1, ay:0});
+function spawn(p){ const s = rnd(SP); Object.assign(p, {x:s[0], y:s[1], vx:0, vy:0, hp:(p === S.me ? TASK.maxHp() : 100), sh:100, fuel:100, dead:0, mag:DATA.weapons.map(w => w.am), rl:0, cool:0, nades:2, meds:1, smk:2}); }
 function isEnemy(team, id){ if (!S.mode || !S.mode.team) return id !== S.me.id; return team !== S.me.team; }
 function overlap(b, p){ return b.x < p.x + p.w && b.x + b.w > p.x && b.y < p.y + p.h && b.y + b.h > p.y; }
 function moveX(e){ e.x += e.vx; for (const s of PL) if (e.x < s.x+s.w && e.x+e.w > s.x && e.y < s.y+s.h && e.y+e.h > s.y) { if (e.vx > 0) e.x = s.x - e.w; else if (e.vx < 0) e.x = s.x + s.w; } e.x = Math.max(0, Math.min(W - e.w, e.x)); }
@@ -46,7 +46,7 @@ function hurt(t, d, owner, via){
   if (t.dead) return; const a = Math.min(t.sh, d); t.sh -= a; t.hp -= d - a; play('hit');
   for (let i = 0; i < 8; i++) S.pt.push({x:t.x+t.w/2, y:t.y+t.h/3, vx:(Math.random()*2-1)*4, vy:(Math.random()*2-1)*4-1, life:40, c:'#b91c1c', s:3+Math.random()*2});
   if (t.hp <= 0) {
-    t.dead = 90; play('die'); t.lb = owner; if (t === S.me) TASK.onDeath(); if (owner === S.me.id && t !== S.me) TASK.onKill(via);
+    t.dead = 90; play('die'); t.lb = owner; if (t === S.me) { S.pk.push({x:t.x+t.w/2, y:t.y+t.h-24, k:'body'}); TASK.onDeath(); } if (owner === S.me.id && t !== S.me) TASK.onKill(via);
     if (t === S.me && !S.offline && NET.s) NET.s.emit('died', {killer:owner, via:via});
     if (S.offline) { S.sc[owner] = S.sc[owner] || {k:0,d:0}; if (owner !== t.id) S.sc[owner].k++; S.sc[t.id] = S.sc[t.id] || {k:0,d:0}; S.sc[t.id].d++; S.feed.unshift([(owner === 'bot' ? '[BOT]' : S.me.name) + ' > ' + (t === S.me ? S.me.name : '[BOT]'), 'var(--lime)']); S.feed = S.feed.slice(0,4); }
   }
@@ -67,7 +67,7 @@ function botStep(){
   moveX(b); moveY(b);
 }
 function step(){
-  if (!S.on) return; const me = S.me, now = Date.now();
+  if (!S.on || S.paused) return; const me = S.me, now = Date.now();
   if (now >= S.end) return endGame();
   if (now < S.start) return;
   if (!me.dead) {
@@ -84,7 +84,7 @@ function step(){
   const targets = [me, S.bot].filter(Boolean);
   S.bl = S.bl.filter(b => {
     if (b.melee) { for (const t of targets) if (!b.done && !t.dead && overlap(b, t) && isEnemy(b.team, b.owner) && t.id !== b.owner) { b.done = 1; hurt(t, b.dmg, b.owner, b.via); } b.life--; return b.life > 0; }
-    b.x += b.vx; b.y += b.vy; b.life--;
+    b.x += b.vx; b.y += b.vy; b.life--; if (S.smk.some(c => Math.hypot(b.x - c.x, b.y - c.y) < 70)) return false;
     if (b.life <= 0 || b.x < 0 || b.x > W || b.y < 0 || b.y > H || PL.some(s => b.x > s.x && b.x < s.x+s.w && b.y > s.y && b.y < s.y+s.h)) { if (b.rk && b.owner === me.id) boomAt(b.x, b.y, b.team, b.owner, true, 'rocket'); return false; }
     for (const t of targets) if (!t.dead && t.id !== b.owner && b.x > t.x && b.x < t.x+t.w && b.y > t.y && b.y < t.y+t.h) { if (b.rk) { if (b.owner === me.id) boomAt(b.x, b.y, b.team, b.owner, true, 'rocket'); } else hurt(t, b.dmg, b.owner, b.via); return false; }
     return true;
@@ -93,8 +93,12 @@ function step(){
     n.vy += .35; n.x += n.vx; n.y += n.vy; n.vx *= .99; n.t--;
     for (const s of PL) if (n.x > s.x && n.x < s.x+s.w && n.y > s.y-6 && n.y < s.y+s.h) { n.y = s.y-6; if (n.vy > 0) n.vy *= -.45; n.vx *= .7; break; }
     if (n.x < 6 || n.x > W-6) { n.vx *= -.5; n.x = Math.max(6, Math.min(W-6, n.x)); }
-    if (n.t <= 0) { boomAt(n.x, n.y, me.team, me.id, true, 'grenade'); return false; } return true;
+    if (n.t <= 0) { if (n.smoke) S.smk.push({x:n.x, y:n.y, t:300}); else boomAt(n.x, n.y, me.team, me.id, true, 'grenade'); return false; } return true;
   });
+  S.smk = S.smk.filter(c => (c.t -= 1) > 0);
+  if (!me.dead) S.pk = S.pk.filter(k => { if (Math.hypot(k.x - (me.x + me.w/2), k.y - (me.y + me.h/2)) < 34) { pickUp(k.k); return false; } return true; });
+  S.pkT = (S.pkT || 0) + 1;
+  if (S.pkT > 900 && S.pk.length < 3) { S.pkT = 0; const p = rnd(PL.slice(1)); S.pk.push({x:p.x + 30 + Math.random() * (p.w - 60), y:p.y - 22, k:rnd(['ammo', 'shield', 'med'])}); }
   S.pt = S.pt.filter(q => { q.x += q.vx; q.y += q.vy; q.vy += .2; q.life--; return q.life > 0; });
   S.fx = S.fx.filter(f => { f.t--; return f.t > 0; });
   if (S.sc && S.mode && S.mode.kills) {
@@ -159,6 +163,8 @@ function draw(){
   g.strokeStyle = '#fde047'; g.lineWidth = 2; for (const b of S.bl) { if (b.melee) continue; g.beginPath(); g.moveTo(b.x, b.y); g.lineTo(b.x-b.vx*.8, b.y-b.vy*.8); g.stroke(); }
   for (const n of S.nd) { const gi = im('assets/weapons/grenade.png'); if (gi.width) g.drawImage(gi, n.x-12, n.y-12, 24, 24); }
   for (const f of S.fx) { const ii = im('assets/effects/' + f.im + '.png'); if (!ii.width) continue; const s = f.im === 'explosion' ? (60 + (26-f.t)*4) : 44; g.globalAlpha = Math.min(1, f.t/10); g.drawImage(ii, f.x-s/2, f.y-s/2, s, s*ii.height/ii.width); g.globalAlpha = 1; }
+  for (const k of S.pk) { const ii = im('assets/items/' + ({ammo:'ammo', shield:'shield', med:'medkit', body:'crate'})[k.k] + '.png'); if (ii.width) g.drawImage(ii, k.x-22, k.y-22, 44, 44*ii.height/ii.width); }
+  for (const c of S.smk) { const sm = im('assets/effects/smoke_white.png'); if (sm.width) { g.globalAlpha = .85; g.drawImage(sm, c.x-70, c.y-50, 140, 100); g.globalAlpha = 1; } }
   for (const q of S.pt) { g.globalAlpha = Math.max(0, q.life/50); g.fillStyle = q.c; g.beginPath(); g.arc(q.x, q.y, q.s, 0, 7); g.fill(); }
   g.globalAlpha = 1; drawHud(); g.restore();
 }
@@ -167,9 +173,9 @@ const TOUCH = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
   if (e.repeat) return; K[e.code] = true; if (!S.on) return;
-  if (e.code === 'KeyG') grenade(); if (e.code === 'KeyE') useMed(); if (e.code === 'KeyR') reload();
+  if (e.code === 'KeyG') grenade(); if (e.code === 'KeyQ') throwSmoke(); if (e.code === 'KeyE') useMed(); if (e.code === 'KeyR') reload();
   const n = parseInt(e.key); if (n >= 1 && n <= DATA.weapons.length) if (TASK.unlocked(DATA.weapons[n-1].img)) S.me.wi = n-1;
-  if (e.code === 'Escape') { S.on = false; go('home'); }
+  if (e.code === 'Escape') togglePause();
 });
 addEventListener('keyup', e => K[e.code] = false);
 function toG(e){ const r = cv.getBoundingClientRect(); return {x:(e.clientX-r.left)*W/r.width, y:(e.clientY-r.top)*H/r.height}; }
@@ -183,7 +189,7 @@ cv.addEventListener('pointermove', e => { const q = toG(e); if (e.pointerType ==
 const pup = e => { if (e.pointerType === 'mouse') MO.d = false; delete PT[e.pointerId]; };
 cv.addEventListener('pointerup', pup); cv.addEventListener('pointercancel', pup);
 function startMatch(mode, map, offline, roster, at){
-  S.mode = mode; S.map = map; S.offline = offline; S.bl = []; S.nd = []; S.pt = []; S.fx = []; S.sc = {}; S.feed = []; S.others = {};
+  S.mode = mode; S.map = map; S.offline = offline; S.bl = []; S.nd = []; S.pt = []; S.fx = []; S.smk = []; S.pk = []; S.pkT = 0; S.paused = false; S.sc = {}; S.feed = []; S.others = {};
   const me = roster.find(p => p.id === (NET.id || 'me')) || {id:'me', name:'Commander', team:0, char:0};
   S.me = mk(me.id, me.name, me.team, me.char); spawn(S.me); S.me.wi = (typeof SEL !== 'undefined' && SEL.wi) || 0;
   S.roster = roster; S.bot = null;
@@ -196,3 +202,17 @@ function startOnline(d){ startMatch(DATA.modes.find(m => m.id === d.mode), d.map
 function endGame(){ TASK.finish(); S.on = false; music('menu'); if (typeof showResults === 'function') showResults(); }
 cv.width = W; cv.height = H;
 loop();
+
+// ---- Smoke grenade (Q), pickups, pause ----
+function throwSmoke(){ const me = S.me; if (me.dead || me.smk <= 0) return; me.smk--; const L = Math.hypot(S.la.x, S.la.y) || 1; S.nd.push({x:me.x+me.w/2, y:me.y+me.h/2, vx:S.la.x/L*8, vy:S.la.y/L*8-3, t:90, smoke:1}); play('throw'); }
+function pickUp(k){
+  const me = S.me;
+  if (k === 'ammo') { me.mag = DATA.weapons.map(w => w.am); me.nades += 1; }
+  else if (k === 'shield') me.sh = Math.min(100, me.sh + 50);
+  else if (k === 'med') me.meds += 1;
+  else if (k === 'body') { me.nades += 2; me.meds += 1; }
+  play('med');
+}
+function togglePause(){ if (!S.on) return; if (!S.paused) { S.paused = true; S.pauseAt = Date.now(); $('pauseov').style.display = 'flex'; $('pmic').textContent = 'MIC: ' + (NET.mic ? 'ON' : 'OFF'); } else resumeGame(); }
+function resumeGame(){ if (!S.paused) return; S.paused = false; const d = Date.now() - S.pauseAt; S.end += d; S.start += d; $('pauseov').style.display = 'none'; }
+function leaveGame(){ S.paused = false; S.on = false; $('pauseov').style.display = 'none'; go('home'); music('menu'); }

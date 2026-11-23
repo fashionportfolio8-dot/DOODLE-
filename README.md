@@ -5,7 +5,7 @@
 ## Folder structure
 ```
 doodle-outpost/
-├── docs/                  ← the game (upload this folder to GitHub Pages)
+├── client/                  ← the game (upload this folder to GitHub Pages)
 │   ├── index.html           screens, HUD, room, voice button
 │   ├── css/style.css        colors and layout (Doodle Outpost design)
 │   ├── js/data.js           SERVER URL, characters, maps, modes, weapons  ← edit SERVER_URL here

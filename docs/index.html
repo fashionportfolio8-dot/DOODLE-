@@ -5,19 +5,24 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Doodle Outpost</title>
 <link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b1420">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
-<div id="rot">ROTATE YOUR PHONE TO LANDSCAPE</div>
+<div id="rot">ROTATE YOUR PHONE TO LANDSCAPE<br><button class="btn" style="margin-top:14px" onclick="document.getElementById('rot').style.display='none'">PLAY ANYWAY</button></div>
 
 <section id="home" class="scr">
-  <div class="top"><h2>DOODLE OUTPOST</h2><div class="row"><button class="btn" id="snd">SOUND: ON</button><button class="btn" id="mus">MUSIC: ON</button></div></div>
+  <div class="top"><img src="assets/logo.png" alt="Doodle Outpost" style="height:64px"><div class="row"><button class="btn" id="snd">SOUND: ON</button><button class="btn" id="mus">MUSIC: ON</button></div></div>
   <div class="row" style="flex:1;align-items:stretch">
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:12px">
       <input id="pname" placeholder="YOUR NAME" maxlength="16" style="width:100%;letter-spacing:1px;text-transform:none" value="Commander">
       <div id="lvl" class="mu"></div>
+      <div id="daily" class="mu" style="color:var(--lime)"></div>
       <button class="btn lime big" onclick="go('modes')">PLAY</button>
-      <div class="row"><button class="btn" style="flex:1" onclick="go('join')">JOIN WITH CODE</button><button class="btn" style="flex:1" onclick="go('loadout')">SOLDIERS &amp; WEAPONS</button><button class="btn" style="flex:1" onclick="go('maps')">MAPS</button></div>
+      <div class="row"><button class="btn" style="flex:1" onclick="go('settings')">SETTINGS</button><button class="btn" style="flex:1" onclick="go('join')">JOIN WITH CODE</button><button class="btn" style="flex:1" onclick="go('loadout')">SOLDIERS &amp; WEAPONS</button><button class="btn" style="flex:1" onclick="go('maps')">MAPS</button></div>
     </div>
     <div class="panel" style="flex:1;display:flex;align-items:center;justify-content:center;background:#0008"><img id="hImg" style="max-height:100%;max-width:100%"></div>
   </div>
@@ -75,7 +80,32 @@
   <div class="row" style="justify-content:space-between"><button class="btn lime" onclick="startOffline()">REMATCH</button><button class="btn" onclick="go('home')">LOBBY</button></div>
 </section>
 
+<section id="settings" class="scr">
+  <div class="top"><button class="btn" onclick="backFromSettings()">← BACK</button><h2>SETTINGS</h2><span></span></div>
+  <div class="panel" style="display:flex;flex-direction:column;gap:18px;max-width:640px;width:100%;margin:auto">
+    <label>Sound effects volume <input type="range" min="0" max="1" step="0.05" value="0.6" style="width:100%" oninput="AUDIO.sv=+this.value"></label>
+    <label>Music volume <input type="range" min="0" max="1" step="0.05" value="0.35" style="width:100%" oninput="setMusVol(+this.value)"></label>
+  </div>
+</section>
+
+<button class="btn" id="pauseBtn" onclick="togglePause()" style="position:fixed;top:10px;right:10px;z-index:6;display:none">PAUSE</button>
+
+<div id="pauseov" style="display:none;position:fixed;inset:0;z-index:20;background:#000b;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+  <h2>PAUSED</h2>
+  <button class="btn lime big" onclick="togglePause()">RESUME</button>
+  <button class="btn big" id="pmic" onclick="toggleMicUI()">MIC: OFF</button>
+  <button class="btn big" onclick="go('settings')">SETTINGS</button>
+  <button class="btn red big" onclick="leaveGame()">LEAVE MATCH</button>
+</div>
+
+<div id="tut" style="display:none;position:fixed;inset:0;z-index:30;background:#000d;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center">
+  <h2>HOW TO PLAY</h2>
+  <div class="panel" style="max-width:700px;line-height:1.8">Move: A / D or left side · Jump: Space or W · Jetpack: hold Shift · Aim and fire: mouse or right side · Grenade: G · Smoke: Q · Medkit: E · Reload: R · Weapons: 1 to 6 or tap the dock · Pause: Esc · Finish tasks to earn XP and level up</div>
+  <button class="btn lime big" onclick="closeTut()">GOT IT</button>
+</div>
+
 <script src="js/data.js"></script>
+<script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");</script>
 <script src="js/audio.js"></script>
 <script src="js/net.js"></script>
 <script src="js/tasks.js"></script>
