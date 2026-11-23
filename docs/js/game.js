@@ -164,7 +164,7 @@ function drawHud(){
   if (me.dead) centerText('YOU DIED - RESPAWNING');
   if (S.now_ < S.start) centerText('GET READY');
   if (S.zom) zomHud(g);
-  TASK.draw(g);
+  if (!window.__doTaskPanelOnly) TASK.draw(g);
   if (TOUCH) drawTouch();
 }
 function centerText(t){ g.textAlign = 'center'; g.font = 'bold 28px system-ui'; g.fillStyle = '#fff'; g.fillText(t, W/2, H/2); g.textAlign = 'left'; }
