@@ -15,7 +15,7 @@ io.on('connection', s => {
     r.players.set(s.id, {id:s.id, name:(name || 'Soldier').slice(0,16), team:0, char:0, mic:false});
     emitRoom(r);
   };
-  s.on('create', (d, cb) => { const c = newCode(); const r = {code:c, host:s.id, players:new Map(), scores:{}}; rooms[c] = r; join(r, d.name); cb({ok:true, code:c}); });
+  s.on('create', (d, cb) => { const c = newCode(); const r = {code:c, host:s.id, players:new Map(), scores:{}, pickups:new Map()}; rooms[c] = r; join(r, d.name); cb({ok:true, code:c}); });
   s.on('join', (d, cb) => {
     const r = rooms[(d.code || '').toUpperCase()];
     if (!r) return cb({ok:false, err:'Room not found'});
@@ -27,7 +27,7 @@ io.on('connection', s => {
   s.on('start', d => {
     if (!room || room.host !== s.id) return;
     let i = 0; for (const p of room.players.values()) p.team = i++ % 2;
-    room.scores = {};
+    room.scores = {}; room.pickups = new Map();
     io.to(room.code).emit('start', {mode:d.mode, map:d.map, at:Date.now() + 2000, players:list(room)});
   });
   ['pos', 'shot', 'fx'].forEach(ev => s.on(ev, d => { if (room) s.to(room.code).emit(ev, {...d, id:s.id}); }));
@@ -38,6 +38,16 @@ io.on('connection', s => {
     if (k && d.killer !== s.id) io.to(d.killer).emit('killed', {via: d.via});
     if (k && d.killer !== s.id) { sc[d.killer] = sc[d.killer] || {k:0, d:0}; sc[d.killer].k++; }
     io.to(room.code).emit('score', {scores:sc, feed:[k ? k.name : 'World', v ? v.name : '?']});
+  });
+  s.on('pickup:spawn', d => {
+    if (!room || room.host !== s.id || !d || !d.id) return;
+    room.pickups.set(d.id, d);
+    io.to(room.code).emit('pickup:spawn', d);
+  });
+  s.on('pickup:collect', d => {
+    if (!room || !d || !room.pickups.has(d.id)) return;
+    room.pickups.delete(d.id);
+    io.to(room.code).emit('pickup:collected', d.id);
   });
   s.on('signal', d => io.to(d.to).emit('signal', {from:s.id, data:d.data}));
   s.on('disconnect', () => {
