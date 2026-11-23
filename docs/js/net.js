@@ -13,7 +13,7 @@ function connect(){
   s.on('score', d => { S.sc = d.scores; S.feed.unshift([d.feed[0] + ' > ' + d.feed[1], '#b8f53a']); S.feed = S.feed.slice(0,4); });
   s.on('left', id => { delete S.others[id]; });
   s.on('pickup:spawn', d => { if (!S.pk.some(p => p.id === d.id)) S.pk.push(d); });
-  s.on('pickup:collected', id => { S.pk = S.pk.filter(p => p.id !== id); });
+  s.on('pickup:collected', d => { const p=S.pk.find(x=>x.id===d.id); if(p && d.by===NET.id) pickUp(p.k); S.pk=S.pk.filter(x=>x.id!==d.id); });
   s.on('killed', d => TASK.onKill(d.via));
   s.on('signal', d => voiceSignal(d.from, d.data));
   return s;
