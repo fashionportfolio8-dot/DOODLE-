@@ -1,5 +1,5 @@
 // Change this to your Render server URL after deploying (see README)
-const SERVER_URL = 'https://YOUR-SERVICE.onrender.com';
+const SERVER_URL = 'https://doodle-outpost-server.onrender.com';
 const DATA = {
   chars: [['Frost','Fast jetpack refuel'],['Ice Ranger','Extra armor'],['Jungle Scout','Faster reload'],['Shadow','Quick movement'],['Sniper Lynx','Steadier aim'],['Night Ops','Sees through smoke'],['Desert Bear','Heavier health'],['Commando Red','Stronger melee'],['Medic','Heals teammates']],
   maps: ['Desert Base','Prison Yard','Scrapyard','Cave Mine','Underground Bunker','Jungle Village','Snow Base','Industrial Tunnel','Mountain Outpost','Abandoned Lab'],
