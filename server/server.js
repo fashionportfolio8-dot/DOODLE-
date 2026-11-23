@@ -40,7 +40,7 @@ io.on('connection', s => {
     io.to(room.code).emit('score', {scores:sc, feed:[k ? k.name : 'World', v ? v.name : '?']});
   });
   s.on('pickup:spawn', d => {
-    if (!room || room.host !== s.id || !d || !d.id) return;
+    if (!room || !room.players.has(s.id) || !d || !d.id) return;
     room.pickups.set(d.id, d);
     io.to(room.code).emit('pickup:spawn', d);
   });
