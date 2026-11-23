@@ -47,7 +47,7 @@ io.on('connection', s => {
   s.on('pickup:collect', d => {
     if (!room || !d || !room.pickups.has(d.id)) return;
     room.pickups.delete(d.id);
-    io.to(room.code).emit('pickup:collected', d.id);
+    io.to(room.code).emit('pickup:collected', {id:d.id, by:s.id});
   });
   s.on('signal', d => io.to(d.to).emit('signal', {from:s.id, data:d.data}));
   s.on('disconnect', () => {
