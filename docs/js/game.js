@@ -15,12 +15,22 @@ function moveX(e){ e.x += e.vx; for (const s of PL) if (e.x < s.x+s.w && e.x+e.w
 function moveY(e){ e.vy += .55; e.y += e.vy; e.ground = false; for (const s of PL) if (e.x < s.x+s.w && e.x+e.w > s.x && e.y < s.y+s.h && e.y+e.h > s.y) { if (e.vy >= 0) { e.y = s.y - e.h; e.ground = true; } else e.y = s.y + s.h; e.vy = 0; } if (e.y > H) { e.y = 0; e.vy = 0; } }
 
 function inp(){
-  const me = S.me; let mx = (K.KeyD||K.ArrowRight?1:0) - (K.KeyA||K.ArrowLeft?1:0), jp = !!(K.Space||K.KeyW||K.ArrowUp), jt = !!(K.ShiftLeft||K.ShiftRight), fi = MO.d, ax = MO.x - (me.x+me.w/2), ay = MO.y - (me.y+me.h/2);
+  const me = S.me;
+  let mx = (K.KeyD||K.ArrowRight?1:0) - (K.KeyA||K.ArrowLeft?1:0);
+  let jp = !!(K.Space||K.KeyW||K.ArrowUp), jt = !!(K.ShiftLeft||K.ShiftRight);
+  let fi = MO.d, ax = MO.x - (me.x+me.w/2), ay = MO.y - (me.y+me.h/2);
   for (const id in PT){ const q = PT[id];
     if (q.t === 'stick') mx = Math.max(-1, Math.min(1, (q.x - q.ox) / 45));
-    else if (q.t === 'aim') { ax = q.x - (me.x+me.w/2); ay = q.y - (me.y+me.h/2); fi = true; }
-    else if (q.t === 'fire') { ax = S.la.x; ay = S.la.y; fi = true; } else if (q.t === 'jet') jt = true; else if (q.t === 'jump') jp = true; }
-  if (Math.hypot(ax, ay) > 10) S.la = {x:ax, y:ay};
+    else if (q.t === 'aim') {
+      const dx = q.x - q.ox, dy = q.y - q.oy, len = Math.hypot(dx, dy);
+      if (len > 7) S.la = {x:dx/len, y:dy/len};
+    }
+    else if (q.t === 'fire') { ax = S.la.x; ay = S.la.y; fi = true; }
+    else if (q.t === 'jet') jt = true;
+    else if (q.t === 'jump') jp = true;
+  }
+  if (MO.d && Math.hypot(ax, ay) > 10) S.la = {x:ax, y:ay};
+  if (!MO.d && !Object.values(PT).some(q => q.t === 'fire')) { ax = S.la.x; ay = S.la.y; }
   return {mx, jp, jt, fi, ax, ay};
 }
 function sendShot(b){ if (!S.offline && NET.s) NET.s.emit('shot', {x:b.x,y:b.y,vx:b.vx,vy:b.vy,dmg:b.dmg,rk:b.rk,via:b.via,life:b.life,team:b.team,melee:b.melee,w:b.w,h:b.h}); }
@@ -170,13 +180,29 @@ function drawHud(){
 function centerText(t){ g.textAlign = 'center'; g.font = 'bold 28px system-ui'; g.fillStyle = '#fff'; g.fillText(t, W/2, H/2); g.textAlign = 'left'; }
 function drawTouch(){
   g.textAlign = 'center';
-  g.globalAlpha = .35; g.fillStyle = '#0008'; g.beginPath(); g.arc(104, H-130, 60, 0, 7); g.fill(); g.strokeStyle = '#b8f53a'; g.lineWidth = 3; g.stroke(); g.globalAlpha = 1;
+  // Left movement and right independent aim joysticks.
+  for (const [x,label] of [[104,'MOVE'],[600,'AIM']]) {
+    g.globalAlpha = .22; g.fillStyle = '#07111f'; g.beginPath(); g.arc(x, H-130, 60, 0, 7); g.fill();
+    g.strokeStyle = '#b8f53a'; g.lineWidth = 3; g.stroke(); g.globalAlpha = .8;
+    g.fillStyle = '#dbeafe'; g.font = 'bold 10px system-ui'; g.fillText(label, x, H-55);
+  }
   for (const n in BTN) { const b = BTN[n];
-    g.globalAlpha = .75; g.fillStyle = '#1b2d45'; g.beginPath(); g.arc(b.x, b.y, b.r, 0, 7); g.fill(); g.strokeStyle = '#b8f53a'; g.lineWidth = 2; g.stroke(); g.globalAlpha = 1;
+    g.globalAlpha = .78; g.fillStyle = n === 'fire' ? '#8b241d' : '#1b2d45'; g.beginPath(); g.arc(b.x, b.y, b.r, 0, 7); g.fill();
+    g.strokeStyle = n === 'fire' ? '#ffb34d' : '#b8f53a'; g.lineWidth = n === 'fire' ? 4 : 2; g.stroke(); g.globalAlpha = 1;
     const ii = n === 'grn' ? im('assets/weapons/grenade.png') : n === 'med' ? im('assets/items/medkit.png') : null;
     if (ii && ii.width) { const h = b.r*1.1, ww = ii.width/ii.height*h; g.drawImage(ii, b.x-ww/2, b.y-h/2, ww, h); }
-    else { g.fillStyle = '#eaf2ff'; g.font = 'bold 13px system-ui'; g.fillText({fire:'FIRE', jump:'JUMP', jet:'JET'}[n], b.x, b.y+5); } }
-  for (const id in PT) { const q = PT[id]; if (q.t === 'stick') { g.globalAlpha = .4; g.fillStyle = '#fff'; g.beginPath(); g.arc(q.ox, q.oy, 40, 0, 7); g.fill(); g.beginPath(); g.arc(q.ox+Math.max(-40, Math.min(40, q.x-q.ox)), q.oy+Math.max(-40, Math.min(40, q.y-q.oy)), 18, 0, 7); g.fill(); g.globalAlpha = 1; } }
+    else { g.fillStyle = '#fff'; g.font = n === 'fire' ? 'bold 16px system-ui' : 'bold 13px system-ui'; g.fillText({fire:'FIRE', jump:'JUMP', jet:'JET'}[n], b.x, b.y+5); }
+  }
+  for (const id in PT) {
+    const q = PT[id];
+    if (q.t === 'stick' || q.t === 'aim') {
+      const radius = q.t === 'aim' ? 40 : 40;
+      const dx = Math.max(-radius, Math.min(radius, q.x-q.ox));
+      const dy = Math.max(-radius, Math.min(radius, q.y-q.oy));
+      g.globalAlpha = .42; g.fillStyle = '#fff'; g.beginPath(); g.arc(q.ox, q.oy, radius, 0, 7); g.fill();
+      g.beginPath(); g.arc(q.ox+dx, q.oy+dy, 18, 0, 7); g.fill(); g.globalAlpha = 1;
+    }
+  }
   g.textAlign = 'left';
 }
 function draw(){
@@ -210,7 +236,8 @@ function toG(e){ const r = cv.getBoundingClientRect(); return {x:(e.clientX-r.le
 cv.addEventListener('pointerdown', e => { if (!S.on) return; const q = toG(e);
   if (e.pointerType === 'mouse') { MO.d = true; MO.x = q.x; MO.y = q.y; return; }
   if (q.y > H-84 && q.x > 200 && q.x < 620) { const wi = Math.floor((q.x-200)/70); if (wi < DATA.weapons.length && TASK.unlocked(DATA.weapons[wi].img)) S.me.wi = wi; return; }
-  cv.setPointerCapture(e.pointerId); let t = q.x < W*.45 ? 'stick' : 'aim';
+  cv.setPointerCapture(e.pointerId);
+  let t = q.x < W*.45 ? 'stick' : 'aim';
   for (const n in BTN) { const b = BTN[n]; if (Math.hypot(q.x-b.x, q.y-b.y) < b.r+6) { t = n; if (n === 'grn') grenade(); if (n === 'med') useMed(); } }
   PT[e.pointerId] = {t, ox:q.x, oy:q.y, x:q.x, y:q.y}; });
 cv.addEventListener('pointermove', e => { const q = toG(e); if (e.pointerType === 'mouse') { MO.x = q.x; MO.y = q.y; return; } const o = PT[e.pointerId]; if (o) { o.x = q.x; o.y = q.y; } });
