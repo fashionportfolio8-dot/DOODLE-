@@ -1,0 +1,8 @@
+{
+  "appId": "com.doodleoutpost.game",
+  "appName": "Doodle Outpost",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
