@@ -65,7 +65,7 @@ function showResults(){
   $('lb').innerHTML = '<b>MATCH LEADERBOARD</b>' + rows.map((r, i) => `<div class="slot" style="margin-top:8px"><span>${i+1}. ${r.n}</span><span>Kills ${r.k} · Deaths ${r.d}</span></div>`).join('');
   go('res');
 }
-function toggleMicUI(){ toggleMic().then(() => { renderRoom(); $('mic').textContent = 'MIC: ' + (NET.mic ? 'ON' : 'OFF'); }); }
+function toggleMicUI(){ toggleMic().then(() => { renderRoom(); $('mic').textContent = 'MIC: ' + (NET.mic ? 'ON' : 'OFF'); const m=$('doMicBtn'); if(m)m.textContent='MIC: '+(NET.mic?'ON':'OFF'); }); }
 function init(){
   $('snd').onclick = tSnd; $('mus').onclick = tMus;
   $('micBtn').onclick = toggleMicUI; $('mic').onclick = toggleMicUI;
