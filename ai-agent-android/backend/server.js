@@ -86,10 +86,10 @@ function staticFindings(files) {
   for (const file of files) {
     const lines = file.content.split(/\r?\n/);
     lines.forEach((line, index) => {
-      if (/\\bTODO\\b|\\bFIXME\\b/i.test(line)) add("info", file.path, "Developer note", "Line " + (index + 1) + " contains a TODO/FIXME note.");
-      if (/\\bdebugger\\s*;/.test(line)) add("warning", file.path, "Debugger statement", "Line " + (index + 1) + " contains a debugger statement.");
+      if (/\bTODO\b|\bFIXME\b/i.test(line)) add("info", file.path, "Developer note", "Line " + (index + 1) + " contains a TODO/FIXME note.");
+      if (/\bdebugger\s*;/.test(line)) add("warning", file.path, "Debugger statement", "Line " + (index + 1) + " contains a debugger statement.");
     });
-    if (/\\.catch\\s*\\(\\s*\\(?\\s*\\)?\\s*=>\\s*\\{\\s*\\}\\s*\\)/.test(file.content)) {
+    if (/\.catch\s*\(\s*\(?\s*\)?\s*=>\s*\{\s*\}\s*\)/.test(file.content)) {
       add("warning", file.path, "Empty error handler", "An empty catch handler may hide a failed operation.");
     }
   }
@@ -173,7 +173,7 @@ app.post("/api/admin/game/review", requireAdmin, async (req, res) => {
         "If a fix is appropriate, provide a proposed patch or complete replacement snippet and explain it.",
         "Do not claim to edit, commit, deploy, or publish anything. This endpoint is read-only.",
         "Never request or expose credentials."
-      ].join("\\n"),
+      ].join("\n"),
       input: "Developer request: " + instruction + "\\n\\nFile: " + path + "\\n\\nSource code:\\n" + content,
       max_output_tokens: 2200
     });
@@ -198,7 +198,7 @@ app.post("/api/agent/chat", requireAdmin, async (req, res) => {
         "Never claim to have changed GitHub files, deployed code, or run tests unless a connected tool actually did so.",
         "You may propose patches and explain them, but publishing always requires explicit approval from the developer.",
         "Never request passwords, API keys, Firebase service-account secrets, or other credentials."
-      ].join("\\n"),
+      ].join("\n"),
       input: prompt,
       max_output_tokens: 1400
     });
