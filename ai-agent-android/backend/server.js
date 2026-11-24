@@ -195,11 +195,43 @@ app.post("/api/admin/game/review", requireAdmin, async (req, res) => {
       input: "Developer request: " + instruction + "\\n\\nFile: " + path + "\\n\\nReview scope: " + reviewScope + "\\n\\nSource context:\\n" + content,
       max_output_tokens: 2600
     });
-    res.json({ ok: true, path, review: response.output_text || "No review text was returned." });
+    const review = response.output_text || "No review text was returned.";
+    const approval = await admin.firestore().collection("aiFixApprovals").add({
+      uid: req.admin.uid, email: req.admin.email, path, title: "AI fix proposal for " + path,
+      review, preview: review.slice(0, 500), status: "pending",
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    res.json({ ok: true, path, review, approvalId: approval.id });
   } catch (error) {
     console.error("AI review failed:", error?.status || error?.name || "unknown");
     res.status(502).json({ error: "AI code review failed. Check the AI service configuration and try again." });
   }
+});
+
+
+app.get("/api/admin/approvals", requireAdmin, async (req, res) => {
+  try {
+    const snapshot = await admin.firestore().collection("aiFixApprovals")
+      .where("uid", "==", req.admin.uid).orderBy("createdAt", "desc").limit(50).get();
+    const approvals = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return { id: doc.id, path: data.path, title: data.title, preview: data.preview, status: data.status,
+        createdAt: data.createdAt?.toDate?.().toISOString() || null };
+    });
+    res.set("Cache-Control", "no-store").json({ ok: true, approvals });
+  } catch (error) { res.status(500).json({ error: "Could not load approval requests. " + (error.message || "") }); }
+});
+app.post("/api/admin/approvals/:id/decision", requireAdmin, async (req, res) => {
+  const decision = req.body?.decision;
+  if (!["approved", "rejected"].includes(decision)) return res.status(400).json({ error: "Choose approved or rejected." });
+  try {
+    const ref = admin.firestore().collection("aiFixApprovals").doc(String(req.params.id));
+    const doc = await ref.get();
+    if (!doc.exists || doc.data().uid !== req.admin.uid) return res.status(404).json({ error: "Approval request not found." });
+    if (doc.data().status !== "pending") return res.status(409).json({ error: "This request already has a decision." });
+    await ref.update({ status: decision, decidedAt: admin.firestore.FieldValue.serverTimestamp() });
+    res.json({ ok: true, id: ref.id, status: decision, applied: false });
+  } catch (error) { res.status(500).json({ error: "Could not save approval decision." }); }
 });
 
 app.post("/api/agent/chat", requireAdmin, async (req, res) => {
