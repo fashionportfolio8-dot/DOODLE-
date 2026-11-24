@@ -87,10 +87,10 @@
 
 <section id="settings" class="scr">
   <div class="top"><button class="btn" onclick="backFromSettings()">← BACK</button><h2>SETTINGS</h2><span></span></div>
-  <div class="panel" style="display:flex;flex-direction:column;gap:14px;max-width:640px;width:100%;margin:auto;overflow:auto">
-    <button class="btn" id="openRulesBtn" onclick="openGameRules()" style="font-size:18px;padding:18px">📖 &nbsp; GAME RULES</button>
-    <div id="gameRulesPanel" class="panel" style="display:none;background:#0d1828;line-height:1.8">
-      <h3 style="margin:0 0 8px">GAME RULES &amp; CONTROLS</h3>
+  <div class="panel settings-panel">
+    <button class="btn settings-wide" id="openRulesBtn" onclick="openGameRules()">📖 GAME RULES</button>
+    <div id="gameRulesPanel" class="panel settings-rules" style="display:none">
+      <h3>CONTROLS</h3>
       <b>PLAYER CONTROLS</b><br>
       Move: A / D or left-side joystick<br>
       Jump: Space or W<br>
@@ -113,8 +113,8 @@
     <div style="display:flex;justify-content:flex-end;margin-top:4px">
       <button class="btn lime" onclick="backFromSettings()">DONE</button>
     </div>
-    <label>Sound effects volume <input type="range" min="0" max="1" step="0.05" value="0.6" style="width:100%" oninput="AUDIO.sv=+this.value"></label>
-    <label>Music volume <input type="range" min="0" max="1" step="0.05" value="0.35" style="width:100%" oninput="setMusVol(+this.value)"></label>
+    <label class="settings-volume">SFX VOLUME <input type="range" min="0" max="1" step="0.05" value="0.6" style="width:100%" oninput="AUDIO.sv=+this.value"></label>
+    <label class="settings-volume">MUSIC VOLUME <input type="range" min="0" max="1" step="0.05" value="0.35" style="width:100%" oninput="setMusVol(+this.value)"></label>
   </div>
 </section>
 
