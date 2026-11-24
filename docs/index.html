@@ -108,6 +108,10 @@
       <button class="btn" onclick="shopSoon()">🛒 SHOP</button>
       <button class="btn" onclick="openLoadout()">🔫 LOADOUT</button>
       <button class="btn" id="customControlsBtn" onclick="openCustomControls()">🎮 CUSTOM CONTROLS</button>
+      <button class="btn" id="refreshGameBtn" onclick="refreshGameNow()" aria-label="Refresh game">↻ REFRESH GAME</button>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:4px">
+      <button class="btn lime" onclick="backFromSettings()">DONE</button>
     </div>
     <label>Sound effects volume <input type="range" min="0" max="1" step="0.05" value="0.6" style="width:100%" oninput="AUDIO.sv=+this.value"></label>
     <label>Music volume <input type="range" min="0" max="1" step="0.05" value="0.35" style="width:100%" oninput="setMusVol(+this.value)"></label>
