@@ -84,6 +84,8 @@ function dailyReward(){
   $('daily').textContent = 'DAILY REWARD +200 XP'; updLevel();
 }
 function closeTut(){ localStorage.setItem('doo_tut', '1'); $('tut').style.display = 'none'; }
+function openGameRules(){ $('gameRulesPanel').style.display = 'block'; $('openRulesBtn').style.display = 'none'; }
+function closeGameRules(){ $('gameRulesPanel').style.display = 'none'; $('openRulesBtn').style.display = ''; backFromSettings(); }
 function backFromSettings(){ if (S.on) { go('game'); $('pauseov').style.display = S.paused ? 'flex' : 'none'; } else go('home'); }
 
 function openLoadout(){
