@@ -134,3 +134,27 @@ input{background:#0d1725;border:2px solid #45556c;color:#f4f7fb;border-radius:8p
 #touchHud.custom-editing .hud-stick:active,#touchHud.custom-editing .aim-fire-pad:active,#touchHud.custom-editing .hud-btn:active{cursor:grabbing}
 #touchHud.custom-editing .stick-knob{pointer-events:none}
 @media(max-width:600px){#customControlsOverlay .custom-controls-toolbar{top:5px;gap:5px;padding:7px}#customControlsOverlay .custom-controls-toolbar .btn{font-size:10px;padding:7px 9px;min-height:34px}#customControlsOverlay .custom-controls-toolbar small{font-size:9px}}
+
+
+/* v1.0.11 settings layout: compact labels, no overlap, scroll on small screens */
+#settings{min-height:0;overflow:hidden}
+#settings>.top{flex:none}
+#settings .settings-panel{display:flex;flex-direction:column;gap:10px;width:min(640px,100%);max-height:calc(100dvh - 82px);margin:0 auto;padding:clamp(10px,2vw,16px);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
+#settings .settings-wide{width:100%;min-height:44px;font-size:13px}
+#settings .settings-game-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%}
+#settings .settings-game-actions .btn{width:100%;min-width:0;min-height:44px;padding:8px 6px;font-size:clamp(10px,1.15vw,13px);line-height:1.2;white-space:normal;overflow-wrap:anywhere}
+#settings .settings-panel>div:has(> .btn.lime){margin-top:0!important}
+#settings .settings-rules{background:#0d1828;line-height:1.45;font-size:12px;padding:12px}
+#settings .settings-rules h3{margin:0 0 7px;font-size:14px;color:var(--lime)}
+#settings .settings-rules b{display:inline-block;margin:4px 0}
+#settings .settings-volume{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:800;letter-spacing:.6px}
+#settings .settings-volume input{width:100%;margin:0;touch-action:pan-x}
+#settings .settings-panel>.row{display:flex;justify-content:flex-end;flex:none}
+#settings .settings-panel>.row .btn{min-width:92px}
+@media(max-width:600px){
+  #settings{padding:8px;gap:8px}
+  #settings .settings-panel{max-height:calc(100dvh - 68px);gap:8px;padding:10px}
+  #settings .settings-game-actions{gap:6px}
+  #settings .settings-game-actions .btn{font-size:10px;min-height:40px}
+  #settings .settings-rules{font-size:11px}
+}
