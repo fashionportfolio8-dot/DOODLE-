@@ -9,6 +9,14 @@ const MODES = new Set(['ffa', 'tdm', 'zom', '1v1']); // keep in sync with DATA.m
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O or 1/I, easier to read aloud
 
 const srv = http.createServer((req, res) => {
+  if (req.url === '/health' || req.url === '/health/') {
+    res.writeHead(200, {
+      'content-type': 'application/json',
+      'access-control-allow-origin': '*',
+      'cache-control': 'no-store'
+    });
+    return res.end(JSON.stringify({ok: true, service: 'doodle-outpost'}));
+  }
   res.writeHead(200, {'content-type': 'text/plain'});
   res.end('Doodle Outpost server is running');
 });
