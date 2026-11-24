@@ -120,3 +120,17 @@ input{background:#0d1725;border:2px solid #45556c;color:#f4f7fb;border-radius:8p
 .aim-fire-pad.active{border-color:#ffe0a0;box-shadow:0 0 20px #ff9e2e99,inset 0 0 0 8px #ffffff12,0 6px 20px #0009;filter:brightness(1.18)}
 @media (pointer:coarse) and (orientation:landscape) and (max-height:420px){.aim-fire-pad{left:67%;bottom:9%;width:clamp(88px,20vh,116px);height:clamp(88px,20vh,116px)}}
 @media (pointer:fine){.aim-fire-pad{display:none}}
+
+
+/* v1.0.7 Custom touch-control editor */
+#customControlsOverlay{position:fixed;inset:0;z-index:1000;display:none;background:radial-gradient(ellipse at center,#17283bea,#050b13f2);align-items:center;justify-content:center;pointer-events:none}
+#customControlsOverlay.open{display:flex}
+#customControlsOverlay .custom-controls-toolbar{position:fixed;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:1003;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;width:min(96vw,760px);padding:10px;border:1px solid #64748b;border-radius:14px;background:#101b2bee;box-shadow:0 8px 28px #0009;pointer-events:auto}
+#customControlsOverlay .custom-controls-toolbar strong{font-size:12px;letter-spacing:1px;color:#b8f53a}
+#customControlsOverlay .custom-controls-toolbar small{width:100%;text-align:center;color:#cbd5e1;font-size:11px}
+#touchHud.custom-editing{position:fixed!important;inset:0!important;width:100vw;height:100dvh;display:block!important;z-index:1001;pointer-events:none;background:linear-gradient(#08111b33,#08111b33)}
+#touchHud.custom-editing .hud-stick,#touchHud.custom-editing .aim-fire-pad,#touchHud.custom-editing .hud-btn{pointer-events:auto!important;touch-action:none!important;cursor:grab;outline:2px dashed #b8f53a99;outline-offset:3px}
+#touchHud.custom-editing .hud-utility,#touchHud.custom-editing .hud-actions{display:contents}
+#touchHud.custom-editing .hud-stick:active,#touchHud.custom-editing .aim-fire-pad:active,#touchHud.custom-editing .hud-btn:active{cursor:grabbing}
+#touchHud.custom-editing .stick-knob{pointer-events:none}
+@media(max-width:600px){#customControlsOverlay .custom-controls-toolbar{top:5px;gap:5px;padding:7px}#customControlsOverlay .custom-controls-toolbar .btn{font-size:10px;padding:7px 9px;min-height:34px}#customControlsOverlay .custom-controls-toolbar small{font-size:9px}}
