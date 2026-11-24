@@ -1,61 +1,152 @@
-// Doodle Outpost multiplayer server: rooms, invite codes, positions, shots, scores, voice signalling
+// Doodle Outpost multiplayer server: rooms, invite codes, positions, shots, scores, voice signalling.
 const http = require('http');
 const {Server} = require('socket.io');
+
 const PORT = process.env.PORT || 3000;
-const srv = http.createServer((q, r) => { r.writeHead(200, {'content-type':'text/plain'}); r.end('Doodle Outpost server is running'); });
-const io = new Server(srv, {cors:{origin:'*'}});
-const rooms = {};
-const newCode = () => { let c; do { c = Math.random().toString(36).slice(2,6).toUpperCase(); } while (rooms[c]); return c; };
-io.on('connection', s => {
+const MAX_PLAYERS = 6;
+const START_DELAY_MS = 2000;
+const MODES = new Set(['ffa', 'tdm', 'zom', '1v1']); // keep in sync with DATA.modes in docs/js/data.js
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O or 1/I, easier to read aloud
+
+const srv = http.createServer((req, res) => {
+  res.writeHead(200, {'content-type': 'text/plain'});
+  res.end('Doodle Outpost server is running');
+});
+const io = new Server(srv, {cors: {origin: '*'}, maxHttpBufferSize: 1e5});
+const rooms = new Map();
+
+const newCode = () => {
+  let code;
+  do {
+    code = Array.from({length: 4}, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
+  } while (rooms.has(code));
+  return code;
+};
+const cleanName = (n) => String(n ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 16) || 'Soldier';
+const clampNum = (v, lo, hi, fallback = 0) => {
+  const x = Number(v);
+  return Number.isFinite(x) ? Math.min(hi, Math.max(lo, x)) : fallback;
+};
+const ack = (cb, body) => { if (typeof cb === 'function') cb(body); };
+
+io.on('connection', (s) => {
   let room = null;
-  const list = r => [...r.players.values()].map(p => ({id:p.id, name:p.name, team:p.team, char:p.char, mic:p.mic, host:p.id === r.host}));
-  const emitRoom = r => io.to(r.code).emit('players', list(r));
+
+  // Any exception inside one handler is logged instead of crashing the whole server.
+  const bind = (ev, fn) => s.on(ev, (...args) => {
+    try { fn(...args); } catch (err) { console.error(`[${ev}]`, err && err.message); }
+  });
+
+  const list = (r) => [...r.players.values()].map(p => ({id: p.id, name: p.name, team: p.team, char: p.char, mic: p.mic, host: p.id === r.host}));
+  const emitRoom = (r) => io.to(r.code).emit('players', list(r));
+
+  const leave = () => {
+    if (!room) return;
+    const r = room;
+    room = null;
+    s.leave(r.code);
+    r.players.delete(s.id);
+    if (!r.players.size) { rooms.delete(r.code); return; }
+    if (r.host === s.id) r.host = [...r.players.keys()][0];
+    emitRoom(r);
+    io.to(r.code).emit('left', s.id);
+  };
+
   const join = (r, name) => {
-    room = r; s.join(r.code);
-    r.players.set(s.id, {id:s.id, name:(name || 'Soldier').slice(0,16), team:0, char:0, mic:false});
+    room = r;
+    s.join(r.code);
+    r.players.set(s.id, {id: s.id, name: cleanName(name), team: 0, char: 0, mic: false});
     emitRoom(r);
   };
-  s.on('create', (d, cb) => { const c = newCode(); const r = {code:c, host:s.id, players:new Map(), scores:{}, pickups:new Map()}; rooms[c] = r; join(r, d.name); cb({ok:true, code:c}); });
-  s.on('join', (d, cb) => {
-    const r = rooms[(d.code || '').toUpperCase()];
-    if (!r) return cb({ok:false, err:'Room not found'});
-    if (r.players.size >= 6) return cb({ok:false, err:'Room is full'});
-    join(r, d.name); cb({ok:true, code:r.code});
+
+  bind('create', (d, cb) => {
+    leave();
+    const code = newCode();
+    const r = {code, host: s.id, players: new Map(), scores: {}, pickups: new Map()};
+    rooms.set(code, r);
+    join(r, d && d.name);
+    ack(cb, {ok: true, code});
   });
-  s.on('char', d => { const p = room && room.players.get(s.id); if (p) { p.char = d.char | 0; emitRoom(room); } });
-  s.on('mic', on => { const p = room && room.players.get(s.id); if (p) { p.mic = !!on; emitRoom(room); } });
-  s.on('start', d => {
+
+  bind('join', (d, cb) => {
+    const code = String((d && d.code) || '').toUpperCase().slice(0, 4);
+    const r = rooms.get(code);
+    if (!r) return ack(cb, {ok: false, err: 'Room not found'});
+    if (r.players.size >= MAX_PLAYERS && !r.players.has(s.id)) return ack(cb, {ok: false, err: 'Room is full'});
+    if (room !== r) leave();
+    join(r, d && d.name);
+    ack(cb, {ok: true, code});
+  });
+
+  bind('leave', () => leave());
+
+  bind('char', (d) => {
+    const p = room && room.players.get(s.id);
+    if (p) { p.char = clampNum(d && d.char, 0, 8); emitRoom(room); }
+  });
+
+  bind('mic', (on) => {
+    const p = room && room.players.get(s.id);
+    if (p) { p.mic = !!on; emitRoom(room); }
+  });
+
+  bind('start', (d) => {
     if (!room || room.host !== s.id) return;
-    let i = 0; for (const p of room.players.values()) p.team = i++ % 2;
-    room.scores = {}; room.pickups = new Map();
-    io.to(room.code).emit('start', {mode:d.mode, map:d.map, at:Date.now() + 2000, players:list(room)});
+    const mode = String((d && d.mode) || '');
+    if (!MODES.has(mode)) return;
+    const map = clampNum(d && d.map, 0, 9, 0);
+    let i = 0;
+    for (const p of room.players.values()) p.team = i++ % 2;
+    room.scores = {};
+    room.pickups = new Map();
+    // Clients start the match after this delay on their own clock, so device clock differences do not matter.
+    io.to(room.code).emit('start', {mode, map, delay: START_DELAY_MS, players: list(room)});
   });
-  ['pos', 'shot', 'fx'].forEach(ev => s.on(ev, d => { if (room) s.to(room.code).emit(ev, {...d, id:s.id}); }));
-  s.on('died', d => {
-    if (!room) return;
-    const sc = room.scores; const v = room.players.get(s.id); const k = room.players.get(d.killer);
-    sc[s.id] = sc[s.id] || {k:0, d:0}; sc[s.id].d++;
-    if (k && d.killer !== s.id) io.to(d.killer).emit('killed', {via: d.via});
-    if (k && d.killer !== s.id) { sc[d.killer] = sc[d.killer] || {k:0, d:0}; sc[d.killer].k++; }
-    io.to(room.code).emit('score', {scores:sc, feed:[k ? k.name : 'World', v ? v.name : '?']});
+
+  // Position, shot and effect packets are relayed to the other players in the room.
+  ['pos', 'shot', 'fx'].forEach((ev) => bind(ev, (d) => {
+    if (room && d && typeof d === 'object') s.to(room.code).emit(ev, {...d, id: s.id});
+  }));
+
+  bind('died', (d) => {
+    if (!room || !d) return;
+    const victim = room.players.get(s.id);
+    if (!victim) return;
+    const killer = room.players.get(d.killer); // only players in this room can receive credit
+    const sc = room.scores;
+    sc[s.id] = sc[s.id] || {k: 0, d: 0};
+    sc[s.id].d++;
+    if (killer && killer.id !== s.id) {
+      sc[killer.id] = sc[killer.id] || {k: 0, d: 0};
+      sc[killer.id].k++;
+      io.to(killer.id).emit('killed', {via: String(d.via || '').slice(0, 20)});
+    }
+    io.to(room.code).emit('score', {scores: sc, feed: [killer ? killer.name : 'World', victim.name]});
   });
-  s.on('pickup:spawn', d => {
-    if (!room || !room.players.has(s.id) || !d || !d.id) return;
-    room.pickups.set(d.id, d);
-    io.to(room.code).emit('pickup:spawn', d);
+
+  bind('pickup:spawn', (d) => {
+    if (!room || !room.players.has(s.id) || !d || typeof d.id !== 'string' || d.id.length > 80) return;
+    if (room.pickups.size >= 60) return;
+    const p = {id: d.id, x: clampNum(d.x, 0, 960), y: clampNum(d.y, 0, 540), k: String(d.k || '').slice(0, 10)};
+    room.pickups.set(p.id, p);
+    io.to(room.code).emit('pickup:spawn', p);
   });
-  s.on('pickup:collect', d => {
-    if (!room || !d || !room.pickups.has(d.id)) return;
+
+  bind('pickup:collect', (d) => {
+    if (!room || !room.players.has(s.id) || !d || !room.pickups.has(d.id)) return;
     room.pickups.delete(d.id);
-    io.to(room.code).emit('pickup:collected', {id:d.id, by:s.id});
+    io.to(room.code).emit('pickup:collected', {id: d.id, by: s.id});
   });
-  s.on('signal', d => io.to(d.to).emit('signal', {from:s.id, data:d.data}));
+
+  // Voice signalling only reaches players in the same room.
+  bind('signal', (d) => {
+    if (!room || !d || !room.players.has(d.to)) return;
+    io.to(d.to).emit('signal', {from: s.id, data: d.data});
+  });
+
   s.on('disconnect', () => {
-    if (!room) return;
-    room.players.delete(s.id);
-    if (!room.players.size) { delete rooms[room.code]; return; }
-    if (room.host === s.id) room.host = [...room.players.keys()][0];
-    emitRoom(room); io.to(room.code).emit('left', s.id);
+    try { leave(); } catch (err) { console.error('[disconnect]', err && err.message); }
   });
 });
+
 srv.listen(PORT, () => console.log('Doodle Outpost server on port ' + PORT));

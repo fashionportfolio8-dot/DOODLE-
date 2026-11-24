@@ -32,7 +32,7 @@ const TASK = {
       if (hit) { t.p = Math.min(t.n, t.p + amt); if (t.p >= t.n) this.done(t); }
     }
   },
-  done(t) { this.active = this.active.filter(x => x !== t); this.completed.push(t.id); const p = this.prog(); p.tasks++; p.xp += TASK_XP; this.gainXp += TASK_XP; this.say('TASK DONE: ' + t.t + ' · +' + TASK_XP + ' XP'); this.levels(); this.fill(); },
+  done(t) { this.active = this.active.filter(x => x !== t); this.completed.push(t.id); const p = this.prog(); p.tasks++; p.xp += TASK_XP; this.gainXp += TASK_XP; this.say('TASK DONE: ' + t.t + ' · +' + TASK_XP + ' XP'); this.levels(); this.save(); this.fill(); },
   levels() { const p = this.prog(); while (p.level < MAX_LEVEL && p.xp >= xpNeed(p.level)) { p.xp -= xpNeed(p.level); p.level++; this.levelsGained++; this.say('LEVEL UP! Level ' + p.level + (UNLOCKS[p.level] ? ' · Unlocked ' + UNLOCKS[p.level] : ' · +5 HP')); } },
   say(m) { this.toast = m; this.toastT = 200; },
   onKill(via) { this.event('kill', via); this.streak++; this.event('streak', '', this.streak); },

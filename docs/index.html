@@ -54,12 +54,12 @@
 </section>
 
 <section id="room" class="scr">
-  <div class="top"><button class="btn" onclick="go('modes')">← BACK</button><h2>ROOM</h2><span class="mu" id="pc">PLAYERS 1/6</span></div>
+  <div class="top"><button class="btn" onclick="leaveRoom();go('modes')">← BACK</button><h2>ROOM</h2><span class="mu" id="pc">PLAYERS 1/6</span></div>
   <div class="row" style="flex:1;align-items:stretch;min-height:0">
     <div class="panel" style="flex:1.2;display:flex;flex-direction:column;gap:8px" id="slots"></div>
     <div class="panel" style="flex:.8;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px"><span>ROOM CODE</span><span class="code" id="rcode">----</span><button class="btn" onclick="navigator.clipboard&&navigator.clipboard.writeText('Join my Doodle Outpost room: '+NET.code)">COPY INVITE</button><button class="btn" id="micBtn">MIC: OFF</button></div>
   </div>
-  <div class="row" style="justify-content:space-between"><button class="btn red" onclick="go('home')">LEAVE ROOM</button><button class="btn lime" id="startBtn" onclick="startOnlineMatch()">START MATCH</button></div>
+  <div class="row" style="justify-content:space-between"><button class="btn red" onclick="leaveRoom();go('home')">LEAVE ROOM</button><button class="btn lime" id="startBtn" onclick="startOnlineMatch()">START MATCH</button></div>
 </section>
 
 <section id="game" class="scr"><canvas id="c" width="960" height="540"></canvas>

@@ -8,8 +8,8 @@ function connect(){
   s.on('players', pl => { NET.players = pl; linkVoice(); if (typeof onRoster === 'function') onRoster(); });
   s.on('start', d => startOnline(d));
   s.on('pos', d => { S.others[d.id] = Object.assign(S.others[d.id] || {}, d); });
-  s.on('shot', d => S.bl.push({x:d.x,y:d.y,vx:d.vx,vy:d.vy,dmg:d.dmg,rk:d.rk,via:d.via,life:d.life,team:d.team,owner:d.id,melee:d.melee,w:d.w,h:d.h}));
-  s.on('fx', d => boomAt(d.x, d.y, d.team, d.id, false, d.via));
+  s.on('shot', d => S.bl.push({x:d.x,y:d.y,vx:d.vx,vy:d.vy,dmg:d.dmg,rk:d.rk,via:d.via,life:d.life,team:d.team,owner:d.id,melee:d.melee,w:d.w,h:d.h,sid:d.sid}));
+  s.on('fx', d => boomAt(d.x, d.y, d.team, d.id, false, d.via, d.sid));
   s.on('score', d => { S.sc = d.scores; S.feed.unshift([d.feed[0] + ' > ' + d.feed[1], '#b8f53a']); S.feed = S.feed.slice(0,4); });
   s.on('left', id => { delete S.others[id]; });
   s.on('pickup:spawn', d => { if (!S.pk.some(p => p.id === d.id)) S.pk.push(d); });
@@ -18,9 +18,17 @@ function connect(){
   s.on('signal', d => voiceSignal(d.from, d.data));
   return s;
 }
-function createRoom(name, cb){ connect().emit('create', {name}, r => { NET.code = r.code; cb(r); }); }
-function joinRoom(code, name, cb){ connect().emit('join', {code, name}, r => { if (r.ok) NET.code = r.code; cb(r); }); }
-function startRoom(mode, map){ NET.s.emit('start', {mode, map}); }
+function createRoom(name, cb){ const s = connect(); if (!s) return cb({ok:false, err:'Server library not loaded'}); s.emit('create', {name}, r => { if (r.ok) NET.code = r.code; cb(r); }); }
+function joinRoom(code, name, cb){ const s = connect(); if (!s) return cb({ok:false, err:'Server library not loaded'}); s.emit('join', {code, name}, r => { if (r.ok) NET.code = r.code; cb(r); }); }
+function startRoom(mode, map){ if (NET.s) NET.s.emit('start', {mode, map}); }
+// Leave the server room and close voice links; called from the room screen and when leaving an online match.
+function leaveRoom(){
+  if (NET.s && NET.code) NET.s.emit('leave');
+  for (const id in NET.pcs) NET.pcs[id].pc.close();
+  NET.pcs = {};
+  if (NET.stream) { NET.stream.getTracks().forEach(t => t.stop()); NET.stream = null; }
+  NET.mic = false; NET.code = null; NET.players = [];
+}
 function setChar(i){ if (NET.s) NET.s.emit('char', {char:i}); }
 
 // ---- Voice: one connection per other player, mic on/off button ----

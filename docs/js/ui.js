@@ -1,6 +1,8 @@
 // Screens, selection, rooms, results
 const $ = i => document.getElementById(i);
 const SEL = {mode:0, map:0, char:0, wi:0};
+// Escape user-supplied text (callsigns) before putting it into innerHTML.
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function go(id){
   document.querySelectorAll('.scr').forEach(s => s.classList.remove('on')); $(id).classList.add('on');
   if (id !== 'game' && id !== 'settings') { S.on = false; }
@@ -33,7 +35,7 @@ function pickMode(i){ const m = DATA.modes[i]; if (!m.ok) return; SEL.mode = i; 
 function renderRoom(){
   const pl = NET.players || [];
   $('rcode').textContent = NET.code || '----';
-  $('slots').innerHTML = pl.map(p => `<div class="slot"><span style="display:flex;gap:8px;align-items:center"><img class="avatar" src="assets/characters/ch${(p.char|0)+1}.png">${p.host ? '[LEADER] ' : ''}${p.name}${p.id === NET.id ? ' (you)' : ''}</span><span>${p.mic ? '🎙 ' : ''}<b style="color:${p.host ? 'var(--amb)' : 'var(--lime)'}">${p.host ? 'OWNER' : 'READY'}</b></span></div>`).join('') +
+  $('slots').innerHTML = pl.map(p => `<div class="slot"><span style="display:flex;gap:8px;align-items:center"><img class="avatar" src="assets/characters/ch${(p.char|0)+1}.png">${p.host ? '[LEADER] ' : ''}${esc(p.name)}${p.id === NET.id ? ' (you)' : ''}</span><span>${p.mic ? '🎙 ' : ''}<b style="color:${p.host ? 'var(--amb)' : 'var(--lime)'}">${p.host ? 'OWNER' : 'READY'}</b></span></div>`).join('') +
     Array.from({length: Math.max(0, 6 - pl.length)}, () => '<div class="slot" style="opacity:.5"><span>Empty slot</span><span class="mu">Invite friends</span></div>').join('');
   $('pc').textContent = 'PLAYERS ' + pl.length + '/6';
   const isHost = pl.find(p => p.id === NET.id)?.host;
@@ -49,6 +51,7 @@ function openCreate(){
   createRoom(name, r => { done = true; clearTimeout(t); if (!r.ok) return alert('Could not create room'); go('room'); });
 }
 function openJoin(){ const name = ($('pname').value || 'Commander').trim(); const code = $('jcode').value.trim();
+  if (!connect()) return alert('Online connection library did not load. Check your internet connection and refresh the game.');
   if (code.length < 4) return alert('Enter the 4-letter room code');
   joinRoom(code, name, r => { if (!r.ok) return alert(r.err || 'Could not join'); go('room'); }); }
 function startOnlineMatch(){ const m = DATA.modes[SEL.mode]; startRoom(m.id, SEL.map); }
@@ -58,11 +61,11 @@ function startOffline(){ const m = DATA.modes[SEL.mode]; if (!m.ok) return;
   startMatch(m, SEL.map, true, [{id:'me', name:($('pname').value || 'Commander'), team:0, char:SEL.char}], Date.now() + 1500);
 }
 function showResults(){
-  const rows = S.roster.map(p => ({n:p.name, k:(S.sc[p.id]||{k:0}).k, d:(S.sc[p.id]||{d:0}).d, t:p.team})).sort((a, b) => b.k - a.k);
-  const mine = rows.find(r => r.n === (S.me && S.me.name)) || rows[0] || {k:0,d:0};
+  const rows = S.roster.map(p => ({id:p.id, n:p.name, k:(S.sc[p.id]||{k:0}).k, d:(S.sc[p.id]||{d:0}).d, t:p.team})).sort((a, b) => b.k - a.k);
+  const mine = rows.find(r => r.id === (S.me && S.me.id)) || rows[0] || {id:null, n:'', k:0, d:0};
   $('rk').textContent = mine.k; $('rd').textContent = mine.d; $('xp').textContent = 'XP +' + TASK.gainXp + ' · LEVEL ' + TASK.prog().level + (TASK.levelsGained ? ' (LEVEL UP x' + TASK.levelsGained + ')' : ''); updLevel();
-  $('rh').textContent = rows[0] && rows[0].n === mine.n ? 'VICTORY' : 'MATCH OVER';
-  $('lb').innerHTML = '<b>MATCH LEADERBOARD</b>' + rows.map((r, i) => `<div class="slot" style="margin-top:8px"><span>${i+1}. ${r.n}</span><span>Kills ${r.k} · Deaths ${r.d}</span></div>`).join('');
+  $('rh').textContent = rows[0] && rows[0].id === mine.id ? 'VICTORY' : 'MATCH OVER';
+  $('lb').innerHTML = '<b>MATCH LEADERBOARD</b>' + rows.map((r, i) => `<div class="slot" style="margin-top:8px"><span>${i+1}. ${esc(r.n)}</span><span>Kills ${r.k} · Deaths ${r.d}</span></div>`).join('');
   go('res');
 }
 function toggleMicUI(){ toggleMic().then(() => { renderRoom(); $('mic').textContent = 'MIC: ' + (NET.mic ? 'ON' : 'OFF'); const m=$('doMicBtn'); if(m)m.textContent='MIC: '+(NET.mic?'ON':'OFF'); }); }
@@ -86,9 +89,9 @@ function backFromSettings(){ if (S.on) { go('game'); $('pauseov').style.display 
 function openLoadout(){
   if (S.on && !S.paused) togglePause();
   $('pauseov').style.display = 'none';
-  $('loadlist').innerHTML = DATA.weapons.map((w, i) => { const lk = !TASK.unlocked(w.img); return `<div class="card${i === S.me.wi ? ' sel' : ''}${lk ? ' off' : ''}" onclick="equipWeapon(${i})" style="min-width:150px"><img src="assets/weapons/${w.img}.png" style="height:56px"><small>${w.n}${lk ? ' · LV ' + WEAPON_LEVEL[w.img] : ''}</small></div>`; }).join('');
+  $('loadlist').innerHTML = DATA.weapons.map((w, i) => { const lk = !TASK.unlocked(w.img); return `<div class="card${i === (S.me ? S.me.wi : SEL.wi) ? ' sel' : ''}${lk ? ' off' : ''}" onclick="equipWeapon(${i})" style="min-width:150px"><img src="assets/weapons/${w.img}.png" style="height:56px"><small>${w.n}${lk ? ' · LV ' + WEAPON_LEVEL[w.img] : ''}</small></div>`; }).join('');
   $('loadov').style.display = 'flex';
 }
-function equipWeapon(i){ if (TASK.unlocked(DATA.weapons[i].img)) S.me.wi = i; closeLoadout(); }
+function equipWeapon(i){ if (TASK.unlocked(DATA.weapons[i].img)) { SEL.wi = i; if (S.me) S.me.wi = i; } closeLoadout(); }
 function closeLoadout(){ $('loadov').style.display = 'none'; if (S.on && S.paused) resumeGame(); }
 function shopSoon(){ alert('Shop: coins and diamonds are not added yet. Coming soon.'); }
