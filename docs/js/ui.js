@@ -95,6 +95,52 @@ function refreshGameNow(){
   if (confirm('Refresh Doodle Outpost? The current match will be closed.')) window.location.reload();
 }
 
+// Wake the Render multiplayer service and wait until its health endpoint responds.
+async function wakeRenderServer(){
+  const btn = $('wakeServerBtn');
+  const status = $('serverWakeStatus');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = '⌛ CONNECTING...';
+  status.textContent = 'Waking Render server. This may take up to 90 seconds...';
+  const healthUrl = SERVER_URL.replace(/\/$/, '') + '/health';
+  const deadline = Date.now() + 90000;
+  let lastError = 'Server is still starting';
+  try {
+    while (Date.now() < deadline) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      try {
+        const response = await fetch(healthUrl, {
+          method: 'GET',
+          cache: 'no-store',
+          mode: 'cors',
+          signal: controller.signal
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result && result.ok === true) {
+            status.textContent = '✓ Render server is awake. You can now start an online match.';
+            btn.textContent = '✓ SERVER READY';
+            return;
+          }
+        }
+        lastError = 'Server responded but is not ready yet';
+      } catch (err) {
+        lastError = err && err.name === 'AbortError' ? 'Server is taking longer to wake up' : 'Waiting for Render server...';
+      } finally {
+        clearTimeout(timeout);
+      }
+      status.textContent = lastError + ' Retrying...';
+      await new Promise(resolve => setTimeout(resolve, 2500));
+    }
+    status.textContent = 'Could not confirm the server is ready. Try again in a moment.';
+    btn.textContent = '↻ RETRY SERVER';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 function openLoadout(){
   if (S.on && !S.paused) togglePause();
   $('pauseov').style.display = 'none';
