@@ -64,9 +64,34 @@ function shell(title, description, body) {
 }
 function findingsMarkup(findings) {
   if (!findings || !findings.length) return '<p class="muted">No findings to display. Run a scan first.</p>';
-  return '<div class="result-list">' + findings.map(item =>
-    '<article class="result-item"><span class="severity ' + esc(item.severity) + '">' + esc(item.severity) + '</span><div><b>' + esc(item.title) + '</b><small>' + esc(item.file) + '</small><p>' + esc(item.detail) + '</p></div></article>'
+  return '<div class="result-list">' + findings.map((item, index) =>
+    '<article class="result-item finding-item"><span class="severity ' + esc(item.severity) + '">' + esc(item.severity) + '</span><div class="finding-content"><b>' + esc(item.title) + '</b><small>' + esc(item.file) + '</small><p>' + esc(item.detail) + '</p><button class="fix-finding" data-index="' + index + '" type="button">⚙ Fix with AI</button><div class="finding-fix-output" aria-live="polite"></div></div></article>'
   ).join("") + '</div>';
+}
+function wireFindingFixes(container, findings) {
+  container.querySelectorAll(".fix-finding").forEach(button => button.addEventListener("click", async () => {
+    const finding = findings[Number(button.dataset.index)];
+    const output = button.parentElement.querySelector(".finding-fix-output");
+    if (!finding) return;
+    button.disabled = true;
+    button.textContent = "AI checking…";
+    output.textContent = "AI is inspecting this finding and preparing a suggested fix. No game files will be changed.";
+    try {
+      const result = await api("/api/admin/game/review", {
+        method: "POST",
+        body: JSON.stringify({
+          path: finding.file,
+          instruction: "Investigate this scanner finding: " + finding.title + ". Details: " + finding.detail + ". Explain the root cause and provide a safe proposed patch or exact steps to fix it. Do not claim the issue is fixed."
+        })
+      });
+      output.textContent = result.review;
+    } catch (error) {
+      output.textContent = "AI could not review this finding: " + error.message + " You can open AI Developer and inspect a related existing file.";
+    } finally {
+      button.disabled = false;
+      button.textContent = "⚙ Review fix again";
+    }
+  }));
 }
 async function runScan() {
   status("Scanning the game repository…");
@@ -81,7 +106,9 @@ async function openScanner() {
     try {
       const result = await runScan();
       document.querySelector("#scanSummary").textContent = "Scanned " + result.scannedFiles + " files · " + result.findings.length + " findings";
-      document.querySelector("#scanResults").innerHTML = findingsMarkup(result.findings);
+      const results = document.querySelector("#scanResults");
+      results.innerHTML = findingsMarkup(result.findings);
+      wireFindingFixes(results, result.findings);
       status(result.note);
     } catch (error) { status(error.message, true); }
     finally { button.disabled = false; button.textContent = "Scan again"; }
@@ -91,7 +118,7 @@ async function openBugs() {
   shell("Bug Reports", "Findings from the latest static source scan. These are review items, not confirmed gameplay defects.", '<div class="tool-actions"><button class="primary" id="refreshBugs">Run / refresh scan</button><span id="workspaceStatus" class="tool-status"></span></div><div id="bugResults">' + (lastScan ? findingsMarkup(lastScan.findings) : '<p class="muted">No bug report yet. Run a scan to create findings.</p>') + '</div>');
   document.querySelector("#refreshBugs").addEventListener("click", async event => {
     const button = event.currentTarget; button.disabled = true; button.textContent = "Checking…";
-    try { const result = await runScan(); document.querySelector("#bugResults").innerHTML = findingsMarkup(result.findings); status(result.findings.length + " findings updated."); }
+    try { const result = await runScan(); const results = document.querySelector("#bugResults"); results.innerHTML = findingsMarkup(result.findings); wireFindingFixes(results, result.findings); status(result.findings.length + " findings updated."); }
     catch (error) { status(error.message, true); }
     finally { button.disabled = false; button.textContent = "Refresh reports"; }
   });
