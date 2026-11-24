@@ -131,56 +131,62 @@ function drawPlayer(p, isMe){
   if (!p.dead) drawGun(p, isMe ? S.la.x : (p.ax || 1), isMe ? S.la.y : (p.ay || 0), im('assets/weapons/' + DATA.weapons[isMe ? p.wi : (p.wi || 0)].img + '.png'));
   g.fillStyle = '#eaf2ff'; g.font = 'bold 11px system-ui'; g.textAlign = 'center'; g.fillText(p.name || '', p.x+p.w/2, p.y-6); g.textAlign = 'left';
 }
-function panel(x, y, w, h){ g.fillStyle = '#0b1420e6'; g.fillRect(x, y, w, h); g.strokeStyle = 'rgba(184,245,58,.7)'; g.lineWidth = 2; g.strokeRect(x+1, y+1, w-2, h-2); }
-function hbar(x, y, w, v, max, c, label){ g.textAlign = 'left'; g.fillStyle = '#eaf2ff'; g.font = 'bold 11px system-ui'; g.fillText(label, x, y+11); g.fillStyle = '#0009'; g.fillRect(x+64, y, w, 14); g.fillStyle = c; g.fillRect(x+64, y, w*Math.max(0, v)/max, 14); g.strokeStyle = '#2b3324'; g.strokeRect(x+64, y, w, 14); }
-function drawHud(){
-  const me = S.me, w = DATA.weapons[me.wi], P = TASK.prog();
-  // commander profile (top left)
-  panel(12, 12, 270, 112);
-  const pi = im('assets/characters/ch' + (me.char+1) + '.png');
-  g.fillStyle = '#2b3324'; g.fillRect(20, 20, 66, 66);
-  if (pi.width) { const hh = 74, ww = pi.width/pi.height*hh; g.drawImage(pi, 53-ww/2, 20+66-hh+6, ww, hh); }
-  g.textAlign = 'left'; g.fillStyle = '#f5a623'; g.font = 'bold 14px system-ui'; g.fillText(me.name.toUpperCase(), 96, 32);
-  g.fillStyle = '#b8f53a'; g.fillRect(96, 38, 46, 18); g.fillStyle = '#11200a'; g.font = 'bold 12px system-ui'; g.fillText('LV ' + P.level, 103, 51);
-  const frac = P.level >= MAX_LEVEL ? 1 : P.xp / xpNeed(P.level);
-  g.fillStyle = '#0009'; g.fillRect(148, 42, 110, 10); g.fillStyle = '#b8f53a'; g.fillRect(148, 42, 110*frac, 10);
-  g.fillStyle = '#eaf2ff'; g.font = 'bold 10px system-ui'; g.fillText('XP ' + P.xp + '/' + (P.level >= MAX_LEVEL ? 'MAX' : xpNeed(P.level)), 148, 64);
-  hbar(96, 72, 120, me.hp, TASK.maxHp(), '#e0453a', 'HP');
-  hbar(96, 90, 120, me.sh, 100, '#38bdf8', 'SHIELD');
-  hbar(96, 108, 120, me.fuel, 100, '#f5a623', 'FUEL');
-  // mode, timer, score (top centre)
-  panel(W/2-140, 8, 280, 58);
-  g.textAlign = 'center'; g.fillStyle = '#b8f53a'; g.font = 'bold 11px system-ui'; g.fillText(S.mode.n.toUpperCase() + ' · ' + DATA.maps[S.map].toUpperCase(), W/2, 26);
-  const left = Math.max(0, S.end - Date.now()), mm = Math.floor(left/60000), ss = Math.floor(left/1000) % 60;
-  g.fillStyle = '#fff'; g.font = 'bold 24px system-ui'; g.fillText(String(mm).padStart(2,'0') + ':' + String(ss).padStart(2,'0'), W/2, 56);
-  const sc = (id) => (S.sc[id] || {k:0}).k;
-  const score = S.mode.team ? [0,1].map(t => S.roster.filter(p => p.team === t).reduce((a, p) => a + sc(p.id), 0)) : [sc(me.id), Math.max(0, ...S.roster.filter(p => p.id !== me.id).map(p => sc(p.id)))];
-  panel(W/2+150, 8, 120, 58); g.fillStyle = '#fff'; g.font = 'bold 22px system-ui'; g.fillText(score[0] + ' - ' + score[1], W/2+210, 46);
-  // kill feed (top right)
-  g.textAlign = 'right'; g.font = 'bold 12px system-ui'; g.fillStyle = '#b8f53a'; g.fillText('KILL FEED', W-14, 22);
-  S.feed.forEach((f, i) => { g.fillStyle = f[1]; g.fillText(f[0], W-14, 40+i*16); });
-  // weapon info (bottom left)
-  panel(12, H-44, 260, 32);
-  g.textAlign = 'left'; g.fillStyle = '#eaf2ff'; g.font = 'bold 13px system-ui';
-  g.fillText(w.n.toUpperCase() + '  ' + (w.grn ? 'GRN ' + me.nades : (w.melee ? 'MELEE' : (me.rl > 0 ? 'RELOADING' : me.mag[me.wi] + '/' + w.am))) + '   MED ' + me.meds, 22, H-22);
-  // weapon bar (bottom centre), larger slots
-  panel(200, H-84, 420, 76);
-  DATA.weapons.forEach((x, i) => {
-    const bx = 206 + i*70, by = H-78, sel = i === me.wi, locked = !TASK.unlocked(x.img);
-    g.fillStyle = sel ? '#2c4a2a' : '#1b2d45'; g.fillRect(bx, by, 66, 66);
-    g.strokeStyle = sel ? '#b8f53a' : '#4b5a34'; g.lineWidth = 2; g.strokeRect(bx, by, 66, 66);
-    const ii = im('assets/weapons/' + x.img + '.png');
-    if (ii.width) { const h = 40, ww = ii.width/ii.height*h; g.globalAlpha = locked ? .35 : 1; g.drawImage(ii, bx+33-ww/2, by+8, ww, h); g.globalAlpha = 1; }
-    g.textAlign = 'left'; g.fillStyle = '#eaf2ff'; g.font = 'bold 10px system-ui'; g.fillText(String(i+1), bx+4, by+12);
-    if (locked) { g.textAlign = 'center'; g.fillStyle = '#f5a623'; g.font = 'bold 10px system-ui'; g.fillText('LV ' + WEAPON_LEVEL[x.img], bx+33, by+60); }
-  });
-  if (me.dead) centerText('YOU DIED - RESPAWNING');
-  if (S.now_ < S.start) centerText('GET READY');
-  if (S.zom) zomHud(g);
-  if (!window.__doTaskPanelOnly) TASK.draw(g);
-  if (TOUCH) drawTouch();
+function panel(x,y,w,h){
+  g.fillStyle='#111b2bdc';g.fillRect(x,y,w,h);
+  g.strokeStyle='#718096';g.lineWidth=1.5;g.strokeRect(x+.75,y+.75,w-1.5,h-1.5);
 }
-function centerText(t){ g.textAlign = 'center'; g.font = 'bold 28px system-ui'; g.fillStyle = '#fff'; g.fillText(t, W/2, H/2); g.textAlign = 'left'; }
+function hbar(x,y,w,v,max,color,label){
+  g.textAlign='left';g.fillStyle='#cbd5e1';g.font='bold 10px system-ui';g.fillText(label,x,y+10);
+  g.fillStyle='#050b14';g.fillRect(x+48,y,w,10);g.fillStyle=color;g.fillRect(x+48,y,w*Math.max(0,v)/max,10);
+  g.strokeStyle='#526176';g.lineWidth=1;g.strokeRect(x+48,y,w,10);
+}
+function drawHud(){
+  const me=S.me,w=DATA.weapons[me.wi],P=TASK.prog();
+  // Commander vitals card: health, shield, jetpack and level.
+  panel(12,12,278,112);
+  const pi=im('assets/characters/ch'+(me.char+1)+'.png');
+  g.fillStyle='#26364a';g.fillRect(20,20,62,62);g.strokeStyle='#b8f53a';g.lineWidth=2;g.strokeRect(20,20,62,62);
+  if(pi.width){const hh=68,ww=pi.width/pi.height*hh;g.drawImage(pi,51-ww/2,18+62-hh+5,ww,hh);}
+  g.textAlign='left';g.fillStyle='#f5c84b';g.font='bold 13px system-ui';g.fillText((me.name||'COMMANDER').toUpperCase(),92,29);
+  g.fillStyle='#b8f53a';g.font='bold 10px system-ui';g.fillText('LEVEL '+P.level,92,44);
+  const xpNeedNow=P.level>=MAX_LEVEL?1:xpNeed(P.level),frac=P.level>=MAX_LEVEL?1:P.xp/xpNeedNow;
+  g.fillStyle='#050b14';g.fillRect(92,50,182,7);g.fillStyle='#b8f53a';g.fillRect(92,50,182*frac,7);
+  g.fillStyle='#aebbd0';g.font='9px system-ui';g.fillText('XP '+P.xp+'/'+(P.level>=MAX_LEVEL?'MAX':xpNeedNow),92,68);
+  hbar(20,88,218,me.hp,TASK.maxHp(),'#e0453a','HP');
+  hbar(20,101,218,me.sh,100,'#8aa4c2','SHD');
+  hbar(20,114,218,me.fuel,100,'#f5a623','JET');
+  // Match mode, score and countdown.
+  panel(W/2-132,12,264,54);
+  g.textAlign='center';g.fillStyle='#b8f53a';g.font='bold 10px system-ui';
+  g.fillText((S.mode.n+' · '+DATA.maps[S.map]).toUpperCase(),W/2,27);
+  const left=Math.max(0,S.end-Date.now()),mm=Math.floor(left/60000),ss=Math.floor(left/1000)%60;
+  g.fillStyle='#f4f7fb';g.font='bold 23px monospace';g.fillText(String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0'),W/2,55);
+  const sc=id=>(S.sc[id]||{k:0}).k;
+  const score=S.mode.team?[0,1].map(t=>S.roster.filter(p=>p.team===t).reduce((a,p)=>a+sc(p.id),0)):[sc(me.id),Math.max(0,...S.roster.filter(p=>p.id!==me.id).map(p=>sc(p.id)))];
+  panel(W/2+142,12,110,54);g.fillStyle='#f5c84b';g.font='bold 21px monospace';g.textAlign='center';g.fillText(score[0]+' : '+score[1],W/2+197,47);
+  // Kill feed remains clear of the external Tasks / Mic / Pause controls.
+  g.textAlign='right';g.fillStyle='#b8f53a';g.font='bold 10px system-ui';g.fillText('COMBAT FEED',W-14,86);
+  S.feed.forEach((f,i)=>{g.fillStyle=f[1]||'#e5edf8';g.font='bold 10px system-ui';g.fillText(f[0],W-14,102+i*14);});
+  // Selected weapon telemetry and interactive weapon dock.
+  panel(12,H-49,176,37);g.textAlign='left';g.fillStyle='#f5c84b';g.font='bold 10px system-ui';g.fillText(w.n.toUpperCase(),22,H-34);
+  g.fillStyle='#f4f7fb';g.font='bold 11px monospace';g.fillText(w.grn?'GRENADES '+me.nades:(w.melee?'MELEE':(me.rl>0?'RELOADING':me.mag[me.wi]+'/'+w.am))+'  ·  MED '+me.meds,22,H-20);
+  panel(198,H-84,424,76);
+  DATA.weapons.forEach((item,i)=>{
+    const bx=202+i*70,by=H-79,selected=i===me.wi,locked=!TASK.unlocked(item.img);
+    g.fillStyle=selected?'#31445a':'#172437';g.fillRect(bx,by,66,66);
+    g.strokeStyle=selected?'#b8f53a':'#526176';g.lineWidth=selected?3:1.5;g.strokeRect(bx,by,66,66);
+    const ii=im('assets/weapons/'+item.img+'.png');
+    if(ii.width){const h=38,ww=ii.width/ii.height*h;g.globalAlpha=locked?.35:1;g.drawImage(ii,bx+33-ww/2,by+7,ww,h);g.globalAlpha=1;}
+    g.textAlign='left';g.fillStyle='#f4f7fb';g.font='bold 10px monospace';g.fillText(String(i+1),bx+5,by+12);
+    g.textAlign='center';g.fillStyle=locked?'#f5a623':'#b8c5d8';g.font='bold 9px system-ui';
+    g.fillText(locked?'LV '+WEAPON_LEVEL[item.img]:(item.grn?'G '+me.nades:(item.melee?'∞':me.mag[i])),bx+33,by+59);
+  });
+  if(me.dead)centerText('YOU DIED - RESPAWNING');
+  if(S.now_<S.start)centerText('GET READY');
+  if(S.zom)zomHud(g);
+  if(!window.__doTaskPanelOnly)TASK.draw(g);
+  if(TOUCH)drawTouch();
+}
 function drawTouch(){
   g.textAlign = 'center';
   // Left movement and right independent aim joysticks.
