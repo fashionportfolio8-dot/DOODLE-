@@ -85,8 +85,15 @@ function dailyReward(){
 }
 function closeTut(){ localStorage.setItem('doo_tut', '1'); $('tut').style.display = 'none'; }
 function openGameRules(){ $('gameRulesPanel').style.display = 'block'; $('openRulesBtn').style.display = 'none'; }
-function closeGameRules(){ $('gameRulesPanel').style.display = 'none'; $('openRulesBtn').style.display = ''; backFromSettings(); }
-function backFromSettings(){ if (S.on) { go('game'); $('pauseov').style.display = S.paused ? 'flex' : 'none'; } else go('home'); }
+function closeGameRules(){ $('gameRulesPanel').style.display = 'none'; $('openRulesBtn').style.display = ''; }
+function backFromSettings(){
+  if (S.briefing) { go('game'); return; }
+  if (S.on) { go('game'); $('pauseov').style.display = S.paused ? 'flex' : 'none'; }
+  else go('home');
+}
+function refreshGameNow(){
+  if (confirm('Refresh Doodle Outpost? The current match will be closed.')) window.location.reload();
+}
 
 function openLoadout(){
   if (S.on && !S.paused) togglePause();
