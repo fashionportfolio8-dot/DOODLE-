@@ -65,10 +65,28 @@ function shell(title, description, body) {
 function findingsMarkup(findings) {
   if (!findings || !findings.length) return '<p class="muted">No findings to display. Run a scan first.</p>';
   return '<div class="result-list">' + findings.map((item, index) =>
-    '<article class="result-item finding-item"><span class="severity ' + esc(item.severity) + '">' + esc(item.severity) + '</span><div class="finding-content"><b>' + esc(item.title) + '</b><small>' + esc(item.file) + '</small><p>' + esc(item.detail) + '</p><button class="fix-finding" data-index="' + index + '" type="button">⚙ Fix with AI</button><div class="finding-fix-output" aria-live="polite"></div></div></article>'
+    '<article class="result-item finding-item"><span class="severity ' + esc(item.severity) + '">' + esc(item.severity) + '</span><div class="finding-content"><b>' + esc(item.title) + '</b><small>' + esc(item.file) + '</small><p>' + esc(item.detail) + '</p><div class="finding-actions"><button class="inspect-finding" data-index="' + index + '" type="button">Open finding</button><button class="fix-finding" data-index="' + index + '" type="button">⚙ Fix with AI</button></div><pre class="finding-file-preview" aria-live="polite"></pre><div class="finding-fix-output" aria-live="polite"></div></div></article>'
   ).join("") + '</div>';
 }
 function wireFindingFixes(container, findings) {
+  container.querySelectorAll(".inspect-finding").forEach(button => button.addEventListener("click", async () => {
+    const finding = findings[Number(button.dataset.index)];
+    const preview = button.closest(".finding-content").querySelector(".finding-file-preview");
+    if (!finding) return;
+    button.disabled = true;
+    button.textContent = "Opening…";
+    preview.textContent = "Loading the affected source file…";
+    try {
+      const result = await api("/api/admin/game/file?path=" + encodeURIComponent(finding.file));
+      preview.textContent = result.content;
+      status("Opened " + finding.file);
+    } catch (error) {
+      preview.textContent = "This finding points to a file that could not be opened: " + error.message + "\\nUse Fix with AI to inspect related files and get a suggested correction.";
+    } finally {
+      button.disabled = false;
+      button.textContent = "Open finding";
+    }
+  }));
   container.querySelectorAll(".fix-finding").forEach(button => button.addEventListener("click", async () => {
     const finding = findings[Number(button.dataset.index)];
     const output = button.parentElement.querySelector(".finding-fix-output");
