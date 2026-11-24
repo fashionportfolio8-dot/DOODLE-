@@ -40,3 +40,10 @@
 .file-link:hover{border-color:#a9ed65;color:#c5f27e}
 .file-preview{max-height:460px;min-height:200px;overflow:auto;margin:0;padding:13px;border:1px solid #293d51;border-radius:10px;background:#09131e;color:#d4e1ed;font:11px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:650px){.workspace-head{gap:8px}.workspace-head h2{font-size:19px}.repo-browser{grid-template-columns:1fr}.repo-files{max-height:230px}.file-preview{max-height:340px}.tool-actions>*{max-width:100%}.tool-status{width:100%}}
+
+
+.finding-content{min-width:0;flex:1}
+.fix-finding{display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:9px 12px;border:1px solid #55783e;border-radius:9px;background:#263b2a;color:#c8f58f;font:700 11px inherit;cursor:pointer}
+.fix-finding:disabled{opacity:.6;cursor:wait}
+.finding-fix-output{margin-top:10px;padding:12px;border:1px solid #34495c;border-radius:9px;background:#0b1723;color:#dce7f2;font-size:11px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.finding-fix-output:empty{display:none}
