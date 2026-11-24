@@ -5,3 +5,5 @@ This wrapper packages the existing `docs/` game into a landscape Android applica
 Build configuration is maintained in the workflow file.
 
 SDK setup now uses the preinstalled runner Android SDK.
+
+Android SDK package setup adjusted.
