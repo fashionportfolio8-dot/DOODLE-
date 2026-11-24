@@ -43,7 +43,7 @@ function renderRoom(){
 function onRoster(){ if ($('room').classList.contains('on')) renderRoom(); }
 function openCreate(){
   const name = ($('pname').value || 'Commander').trim();
-  if (!connect()) return alert('Online server is not set up yet. Online rooms need the Render server (see README). You can still play offline vs bots.');
+  if (!connect()) return alert('Online connection library did not load. Check your internet connection and refresh the game. Offline vs bots is still available.');
   let done = false;
   const t = setTimeout(() => { if (!done) alert('Server not reachable. Check SERVER_URL in data.js and that the Render server is running.'); }, 5000);
   createRoom(name, r => { done = true; clearTimeout(t); if (!r.ok) return alert('Could not create room'); go('room'); });
