@@ -20,7 +20,7 @@
 <label class="home-call"><span>SOLDIER CALLSIGN</span><input id="pname" placeholder="YOUR NAME" maxlength="16" value="Commander" autocomplete="off"><small>Displayed above your soldier in matches</small></label>
 <div class="level-card"><div class="level-top"><strong id="lvl">LEVEL 1</strong><span id="levelXp">0 / 100 XP</span></div><div class="level-track"><i id="levelProgress"></i></div><div class="level-bottom"><span id="nextUnlock">Next unlock: Shotgun · Level 2</span><span id="activeTaskCount">3 ACTIVE TASKS</span></div></div>
 <div class="home-actions"><button class="btn lime big" onclick="go('modes')">▶ PLAY MATCH</button><button class="btn amb big" onclick="go('join')">⌁ JOIN WITH CODE</button></div>
-<div class="home-subnav"><button class="btn" onclick="go('loadout')">♜ ARMORY</button><button class="btn" onclick="go('maps')">▧ ARENAS (10)</button><button class="btn" onclick="document.getElementById('tut').style.display='flex'">? CONTROLS</button></div></section>
+<div class="home-subnav"><button class="btn" onclick="go('loadout')">♜ ARMORY</button><button class="btn" onclick="go('maps')">▧ ARENAS (10)</button></div></section>
 <aside class="panel home-stage"><div class="stage-heading"><div><span>ACTIVE LOADOUT</span><h2 id="heroSoldierName">FROST</h2></div><span id="heroSoldierPerk" class="perkTag">Fast jetpack refuel</span></div><div class="hero-box"><img id="hImg" alt="Active soldier"></div><div class="quick-title">QUICK SWITCH SOLDIER</div><div class="quick-chars" id="quickChars"></div></aside></main></section>
 
 <section id="modes" class="scr">
@@ -88,6 +88,19 @@
 <section id="settings" class="scr">
   <div class="top"><button class="btn" onclick="backFromSettings()">← BACK</button><h2>SETTINGS</h2><span></span></div>
   <div class="panel" style="display:flex;flex-direction:column;gap:14px;max-width:640px;width:100%;margin:auto;overflow:auto">
+    <b>GAME RULES &amp; CONTROLS</b>
+    <div class="panel" style="background:#0d1828;line-height:1.8">
+      <b>PLAYER CONTROLS</b><br>
+      Move: A / D or left-side joystick<br>
+      Jump: Space or W<br>
+      Jetpack: hold Shift<br>
+      Aim + Fire: drag and hold the right control<br>
+      Grenade: G &nbsp;·&nbsp; Smoke: Q &nbsp;·&nbsp; Medkit: E<br>
+      Reload: R &nbsp;·&nbsp; Weapons: 1 to 6 or tap the weapon dock<br>
+      Pause: Esc
+      <br><br><b>HOW TO PLAY</b><br>
+      Defeat opponents, survive the match, complete tasks, and earn XP to level up and unlock weapons.
+    </div>
     <b>GAME MENU</b>
     <div class="row settings-game-actions">
       <button class="btn" onclick="shopSoon()">🛒 SHOP</button>
@@ -109,11 +122,7 @@
   <button class="btn red big" onclick="leaveGame()">LEAVE MATCH</button>
 </div>
 
-<div id="tut" style="display:none;position:fixed;inset:0;z-index:30;background:#000d;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center">
-  <h2>HOW TO PLAY</h2>
-  <div class="panel" style="max-width:700px;line-height:1.8">Move: A / D or left side · Jump: Space or W · Jetpack: hold Shift · Aim + Fire: drag and hold on the right control · Grenade: G · Smoke: Q · Medkit: E · Reload: R · Weapons: 1 to 6 or tap the dock · Pause: Esc · Finish tasks to earn XP and level up</div>
-  <button class="btn lime big" onclick="closeTut()">GOT IT</button>
-</div>
+
 
 <div id="sideBtns" style="display:none;position:fixed;left:8px;top:40%;flex-direction:column;gap:8px;z-index:5">
   <button class="btn" onclick="shopSoon()">SHOP</button>
