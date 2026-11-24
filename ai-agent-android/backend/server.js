@@ -163,19 +163,37 @@ app.post("/api/admin/game/review", requireAdmin, async (req, res) => {
   const instruction = typeof req.body?.instruction === "string" ? req.body.instruction.trim() : "";
   if (!instruction || instruction.length > 4000) return res.status(400).json({ error: "Enter a review instruction (maximum 4,000 characters)." });
   try {
-    const content = await readGameFile(path);
+    let content;
+    let reviewScope = "The selected file was read successfully.";
+    try {
+      content = await readGameFile(path);
+    } catch {
+      const tree = await getGameTree();
+      const nearby = tree.filter(item => item.type === "blob" && item.path.startsWith("docs/") && TEXT_EXTENSIONS.test(item.path) && item.path !== path)
+        .sort((a, b) => {
+          const dir = path.split("/").slice(0, -1).join("/");
+          return Number(b.path.startsWith(dir + "/")) - Number(a.path.startsWith(dir + "/"));
+        }).slice(0, 4);
+      const excerpts = await Promise.all(nearby.map(async item => {
+        try { return "\\n--- " + item.path + " ---\\n" + (await readGameFile(item.path)).slice(0, 18000); }
+        catch { return ""; }
+      }));
+      content = "TARGET FILE: " + path + "\\nThe target file could not be read or may be missing. Here are related existing files for context:\\n" + excerpts.join("\\n");
+      reviewScope = "The target file was unavailable. AI reviewed related files only; it may recommend creating the missing file, but cannot verify or apply a fix.";
+    }
     const response = await openai.responses.create({
       model: MODEL,
       instructions: [
         "You are the private senior developer for the Doodle Outpost game.",
-        "Review only the supplied source file and the developer's request.",
+        "Review the supplied source context and the developer's request.",
         "Explain confirmed issues separately from possible risks. Never invent test results.",
         "If a fix is appropriate, provide a proposed patch or complete replacement snippet and explain it.",
+        "If the target file is missing, say so clearly and explain whether it should be created or whether another path is correct.",
         "Do not claim to edit, commit, deploy, or publish anything. This endpoint is read-only.",
         "Never request or expose credentials."
-      ].join("\n"),
-      input: "Developer request: " + instruction + "\\n\\nFile: " + path + "\\n\\nSource code:\\n" + content,
-      max_output_tokens: 2200
+      ].join("\\n"),
+      input: "Developer request: " + instruction + "\\n\\nFile: " + path + "\\n\\nReview scope: " + reviewScope + "\\n\\nSource context:\\n" + content,
+      max_output_tokens: 2600
     });
     res.json({ ok: true, path, review: response.output_text || "No review text was returned." });
   } catch (error) {
