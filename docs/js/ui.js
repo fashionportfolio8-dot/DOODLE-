@@ -15,6 +15,10 @@ function tSnd(){ AUDIO.sfx = !AUDIO.sfx; $('snd').textContent = 'SOUND: ' + (AUD
 function tMus(){ AUDIO.mus = !AUDIO.mus; $('mus').textContent = 'MUSIC: ' + (AUDIO.mus ? 'ON' : 'OFF'); if (!AUDIO.mus) music(null); else music('menu'); }
 function render(){
   $('hImg').src = 'assets/characters/ch' + (SEL.char+1) + '.png';
+  if ($('heroSoldierName')) $('heroSoldierName').textContent = DATA.chars[SEL.char][0].toUpperCase();
+  if ($('heroSoldierPerk')) $('heroSoldierPerk').textContent = DATA.chars[SEL.char][1];
+  if ($('quickChars')) $('quickChars').innerHTML = [0,1,5,7].map(i => '<button type="button" class="'+(i===SEL.char?'selected':'')+'" onclick="SEL.char='+i+';render()"><img src="assets/characters/ch'+(i+1)+'.png" alt=""><span>'+DATA.chars[i][0].split(' ')[0]+'</span></button>').join('');
+  if (typeof updLevel === 'function') updLevel();
   $('mg').innerHTML = DATA.modes.map((m, i) => `<div class="card${i === SEL.mode ? ' sel' : ''}${m.ok ? '' : ' off'}" onclick="pickMode(${i})"><img src="${modeIcon(i)}"><b>${m.n}</b><small class="mu">${m.s}${m.ok ? '' : ' · soon'}</small></div>`).join('');
   $('mpg').innerHTML = DATA.maps.map((m, i) => `<div class="card${i === SEL.map ? ' sel' : ''}" onclick="SEL.map=${i};render()"><img class="mimg" src="assets/maps/map${i+1}.jpg"><small>${m}</small></div>`).join('');
   $('mt').textContent = 'SELECT ARENA · ' + DATA.modes[SEL.mode].n.toUpperCase();
@@ -71,7 +75,7 @@ init();
 
 function dailyReward(){
   const today = new Date().toDateString();
-  if (localStorage.getItem('doo_daily') === today) return;
+  if (localStorage.getItem('doo_daily') === today) { $('daily').textContent = 'DAILY XP CLAIMED'; return; }
   localStorage.setItem('doo_daily', today);
   const p = TASK.prog(); p.xp += 200; TASK.levels(); TASK.save();
   $('daily').textContent = 'DAILY REWARD +200 XP'; updLevel();
