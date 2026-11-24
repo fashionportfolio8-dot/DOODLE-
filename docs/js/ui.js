@@ -72,7 +72,7 @@ function toggleMicUI(){ toggleMic().then(() => { renderRoom(); $('mic').textCont
 function init(){
   $('snd').onclick = tSnd; $('mus').onclick = tMus;
   $('micBtn').onclick = toggleMicUI; $('mic').onclick = toggleMicUI;
-  render(); go('home'); updLevel(); dailyReward(); if (!localStorage.getItem('doo_tut')) $('tut').style.display = 'flex';
+  render(); go('home'); updLevel(); dailyReward();
 }
 init();
 
