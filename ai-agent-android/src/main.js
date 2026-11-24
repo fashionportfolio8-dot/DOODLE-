@@ -7,6 +7,7 @@ import {
   signOut
 } from "firebase/auth";
 
+const API_BASE = "https://doodle-outpost-ai-agent.onrender.com";
 const app = document.querySelector("#app");
 
 const modules = [
@@ -60,6 +61,19 @@ function renderLogin(message = "") {
   });
 }
 
+function appendChatMessage(role, text) {
+  const list = document.querySelector("#chatMessages");
+  const item = document.createElement("div");
+  item.className = `chat-message ${role}`;
+  const label = document.createElement("strong");
+  label.textContent = role === "user" ? "YOU" : "DO AI";
+  const body = document.createElement("p");
+  body.textContent = text;
+  item.append(label, body);
+  list.append(item);
+  list.scrollTop = list.scrollHeight;
+}
+
 function renderDashboard(user) {
   app.innerHTML = `
     <div class="dashboard">
@@ -80,7 +94,19 @@ function renderDashboard(user) {
       <main class="main-content">
         <header class="topbar"><div><span class="eyebrow">DOODLE OUTPOST / WORKSPACE</span><h1>Developer Dashboard</h1></div><button id="logoutBtn" class="ghost">Sign out ↗</button></header>
         <section class="welcome-panel"><div><p class="eyebrow">PRIVATE AI WORKSPACE</p><h2>Welcome back, Developer.</h2><p>Inspect your game, investigate issues and prepare improvements.</p></div><div class="orb">✳</div></section>
-        <div class="section-heading"><div><h2>Development tools</h2><p>Choose a workspace to get started.</p></div><span class="admin-chip">● ADMIN</span></div>
+        <div class="section-heading"><div><h2>AI Developer Chat</h2><p>Ask your private assistant about Doodle Outpost.</p></div><span class="admin-chip">● ADMIN</span></div>
+        <section class="chat-panel">
+          <div class="chat-status"><span class="status-dot"></span> Connected to your secured AI backend</div>
+          <div id="chatMessages" class="chat-messages" aria-live="polite">
+            <div class="chat-message assistant"><strong>DO AI</strong><p>Hello! I'm your Doodle Outpost development assistant. I can answer questions and help plan code changes. I will not publish anything to GitHub without your approval.</p></div>
+          </div>
+          <form id="chatForm" class="chat-form">
+            <textarea id="chatInput" rows="2" maxlength="12000" placeholder="Ask something about your game…" required></textarea>
+            <button class="primary" id="sendChat" type="submit">Send message →</button>
+          </form>
+          <p id="chatError" class="chat-error" role="alert"></p>
+        </section>
+        <div class="section-heading"><div><h2>Development tools</h2><p>Additional workspaces will be connected in later phases.</p></div></div>
         <section class="module-grid">
           ${modules.map(([icon, title, description], index) => `
             <article class="module-card" data-module="${title}">
@@ -89,15 +115,46 @@ function renderDashboard(user) {
             </article>`).join("")}
         </section>
         <section class="approval-panel"><div><span class="eyebrow">PUBLISHING POLICY</span><h3>Approval required</h3><p>The agent may prepare changes, but it must never publish to GitHub without your approval.</p></div><div class="lock-icon">⌑</div></section>
-        <footer>Signed in as <b>${user.email}</b> · Doodle Outpost AI Agent · Initial preview</footer>
+        <footer>Signed in as <b>${user.email}</b> · Doodle Outpost AI Agent</footer>
       </main>
     </div>`;
 
   document.querySelector("#logoutBtn").addEventListener("click", () => signOut(auth));
   document.querySelectorAll(".module-card").forEach(card => {
     card.addEventListener("click", () => {
-      alert(card.dataset.module + " is planned for the next development phase. The dashboard shell is ready; AI and GitHub operations are not connected yet.");
+      alert(card.dataset.module + " is planned for a later development phase. AI chat is connected; this module is not yet implemented.");
     });
+  });
+
+  document.querySelector("#chatForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const input = document.querySelector("#chatInput");
+    const button = document.querySelector("#sendChat");
+    const error = document.querySelector("#chatError");
+    const message = input.value.trim();
+    if (!message) return;
+    appendChatMessage("user", message);
+    input.value = "";
+    error.textContent = "";
+    button.disabled = true;
+    button.textContent = "Thinking…";
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(`${API_BASE}/api/agent/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ message })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || `Request failed (${response.status}).`);
+      appendChatMessage("assistant", data.answer || "The AI returned an empty response.");
+    } catch (err) {
+      error.textContent = err.message || "Could not reach the AI service. Please try again.";
+    } finally {
+      button.disabled = false;
+      button.textContent = "Send message →";
+      input.focus();
+    }
   });
 }
 
