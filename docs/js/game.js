@@ -23,16 +23,17 @@ function inp(){
   let fi = MO.d, ax = MO.x - (me.x+me.w/2), ay = MO.y - (me.y+me.h/2);
   for (const id in PT){ const q = PT[id];
     if (q.t === 'stick') mx = Math.max(-1, Math.min(1, (q.x - q.ox) / 45));
-    else if (q.t === 'aim') {
+    else if (q.t === 'aim' || q.t === 'fireAim') {
       const dx = q.x - q.ox, dy = q.y - q.oy, len = Math.hypot(dx, dy);
       if (len > 7) S.la = {x:dx/len, y:dy/len};
+      if (q.t === 'fireAim') { ax = S.la.x; ay = S.la.y; fi = true; }
     }
     else if (q.t === 'fire') { ax = S.la.x; ay = S.la.y; fi = true; }
     else if (q.t === 'jet') jt = true;
     else if (q.t === 'jump') jp = true;
   }
   if (MO.d && Math.hypot(ax, ay) > 10) S.la = {x:ax, y:ay};
-  if (!MO.d && !Object.values(PT).some(q => q.t === 'fire')) { ax = S.la.x; ay = S.la.y; }
+  if (!MO.d && !Object.values(PT).some(q => q.t === 'fire' || q.t === 'fireAim')) { ax = S.la.x; ay = S.la.y; }
   return {mx, jp, jt, fi, ax, ay};
 }
 function sendShot(b){ if (!S.offline && NET.s) NET.s.emit('shot', {x:b.x,y:b.y,vx:b.vx,vy:b.vy,dmg:b.dmg,rk:b.rk,via:b.via,life:b.life,team:b.team,melee:b.melee,w:b.w,h:b.h}); }
