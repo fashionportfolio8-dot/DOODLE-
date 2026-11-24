@@ -60,3 +60,25 @@ input{background:#0d1828;border:2px solid #2c4666;color:var(--tx);border-radius:
 /* Home-screen game version badge. */
 .brandBlock{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}
 .versionTag{display:inline-flex;align-items:center;padding:3px 8px;border:1px solid #b8f53a88;border-radius:6px;background:#0b1420cc;color:var(--lime);font:800 10px/1.2 system-ui,sans-serif;letter-spacing:1px}
+
+/* v1.0.3 adaptive touch HUD */
+#game{position:relative}
+#touchHud{position:absolute;inset:0;z-index:4;pointer-events:none;display:none;font-family:system-ui,sans-serif}
+.hud-stick{position:absolute;left:3.5%;bottom:5%;width:clamp(92px,17vh,142px);height:clamp(92px,17vh,142px);border:2px solid #b8f53a99;border-radius:50%;background:#0b1420a8;pointer-events:auto;touch-action:none;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 8px #ffffff0a}
+.aim-stick{left:55%;bottom:5%;border-color:#f5a623bb;background:#0b1420b8}
+.stick-knob{position:absolute;width:38%;height:38%;border-radius:50%;background:#b8f53a66;border:2px solid #d8ff85;transform:translate(0,0);pointer-events:none}
+.aim-stick .stick-knob{background:#f5a62366;border-color:#ffd27a}
+.stick-label{position:absolute;bottom:8px;font-size:10px;font-weight:900;letter-spacing:1px;color:#eaf2ff;text-shadow:0 1px 3px #000}
+.hud-utility{position:absolute;right:13%;bottom:5%;display:grid;grid-template-columns:repeat(2,clamp(48px,8vh,68px));gap:8px;pointer-events:none}
+.hud-actions{position:absolute;right:2.5%;bottom:5%;display:flex;flex-direction:column;align-items:center;gap:7px;pointer-events:none}
+.hud-btn{width:clamp(48px,8vh,68px);height:clamp(42px,7.5vh,62px);padding:3px;border-radius:14px;border:2px solid #b8f53a;background:#0b1420df;color:#f2f1e6;font-size:clamp(9px,1.6vh,13px);font-weight:900;line-height:1.05;box-shadow:0 2px 8px #0008;pointer-events:auto;touch-action:none}
+.hud-btn:active{filter:brightness(1.35);transform:scale(.96)}
+.hud-actions .hud-btn{width:clamp(54px,9vh,76px)}
+.hud-actions .fire-btn{width:clamp(70px,13vh,104px);height:clamp(58px,11vh,88px);border-radius:50%;background:#8b241ddd;border:3px solid #ffb34d;font-size:clamp(13px,2vh,17px)}
+@media (pointer:coarse) and (orientation:landscape){#touchHud{display:block}}
+@media (pointer:coarse) and (orientation:landscape) and (max-height:420px){
+.hud-stick{width:clamp(78px,18vh,112px);height:clamp(78px,18vh,112px);bottom:4%}.aim-stick{left:52%}
+.hud-utility{right:13%;bottom:4%;gap:5px}.hud-actions{right:2%;bottom:4%;gap:4px}
+.hud-btn{width:clamp(43px,8vh,56px);height:clamp(38px,7vh,48px);font-size:9px}
+.hud-actions .fire-btn{width:clamp(58px,12vh,76px);height:clamp(50px,10vh,68px)}}
+@media (pointer:fine){#touchHud{display:none!important}}
