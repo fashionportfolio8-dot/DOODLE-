@@ -62,4 +62,11 @@ const TASK = {
     }
   }
 };
-function updLevel(){ const p = TASK.prog(); const el = document.getElementById('lvl'); if (el) el.textContent = 'LEVEL ' + p.level + ' · XP ' + p.xp + '/' + (p.level >= MAX_LEVEL ? 'MAX' : xpNeed(p.level)); }
+function updLevel(){
+  const p=TASK.prog(), need=p.level>=MAX_LEVEL?0:xpNeed(p.level), el=document.getElementById('lvl');
+  if(el)el.textContent='LEVEL '+p.level+' · +'+((p.level-1)*5)+' BONUS HP';
+  const xp=document.getElementById('levelXp');if(xp)xp.textContent=need?p.xp+' / '+need+' XP':'MAX LEVEL';
+  const bar=document.getElementById('levelProgress');if(bar)bar.style.width=(need?Math.min(100,p.xp/need*100):100)+'%';
+  const count=document.getElementById('activeTaskCount');if(count)count.textContent=(TASK.active.length||3)+' ACTIVE TASKS';
+  const unlock=document.getElementById('nextUnlock');if(unlock){const next=Object.keys(UNLOCKS).map(Number).filter(l=>l>p.level).sort((a,b)=>a-b)[0];unlock.textContent=next?'Next unlock: '+UNLOCKS[next]+' · Level '+next:'All weapons unlocked';}
+}
