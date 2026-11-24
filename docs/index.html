@@ -92,6 +92,7 @@
     <div class="row settings-game-actions">
       <button class="btn" onclick="shopSoon()">🛒 SHOP</button>
       <button class="btn" onclick="openLoadout()">🔫 LOADOUT</button>
+      <button class="btn" id="customControlsBtn" onclick="openCustomControls()">🎮 CUSTOM CONTROLS</button>
     </div>
     <label>Sound effects volume <input type="range" min="0" max="1" step="0.05" value="0.6" style="width:100%" oninput="AUDIO.sv=+this.value"></label>
     <label>Music volume <input type="range" min="0" max="1" step="0.05" value="0.35" style="width:100%" oninput="setMusVol(+this.value)"></label>
@@ -136,5 +137,6 @@
 <script src="js/hud-controls.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/mission-ui.js"></script>
+<script src="js/custom-controls.js"></script>
 </body>
 </html>
