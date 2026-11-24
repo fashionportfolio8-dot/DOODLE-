@@ -10,7 +10,8 @@ const modules = [
   ["testing", "Testing Lab", "Run safe static project checks.", "▷"],
   ["developer", "AI Developer", "Ask AI to review a real game file and propose a fix.", "⌘"],
   ["github", "GitHub Manager", "Browse game files in read-only mode.", "⑂"],
-  ["versions", "Version History", "Review recent commits on the game main branch.", "◷"]
+  ["versions", "Version History", "Review recent commits on the game main branch.", "◷"],
+  ["approvals", "Approvals", "Review and approve or reject AI fix proposals.", "✓"]
 ];
 let lastScan = null;
 let cachedFiles = [];
@@ -103,6 +104,15 @@ function wireFindingFixes(container, findings) {
         })
       });
       output.textContent = result.review;
+      if (result.approvalId) {
+        const actions = document.createElement("div");
+        actions.className = "approval-actions";
+        actions.innerHTML = '<b>Approval required</b><p>Review the proposal above, then choose whether to approve or reject it.</p><button class="primary approve-fix">Approve proposal</button><button class="ghost reject-fix">Reject</button>';
+        output.append(actions);
+        actions.querySelector(".approve-fix").addEventListener("click", () => decideApproval(result.approvalId, "approved", actions));
+        actions.querySelector(".reject-fix").addEventListener("click", () => decideApproval(result.approvalId, "rejected", actions));
+        status("A new approval request was added to Approvals.");
+      }
     } catch (error) {
       output.textContent = "AI could not review this finding: " + error.message + " You can open AI Developer and inspect a related existing file.";
     } finally {
@@ -190,6 +200,39 @@ async function openDeveloper() {
     finally { button.disabled = false; button.textContent = "Review selected file"; }
   });
 }
+
+async function decideApproval(id, decision, host) {
+  const buttons = host.querySelectorAll("button");
+  buttons.forEach(button => button.disabled = true);
+  try {
+    await api("/api/admin/approvals/" + encodeURIComponent(id) + "/decision", {
+      method: "POST", body: JSON.stringify({ decision })
+    });
+    host.innerHTML = "<b>" + (decision === "approved" ? "Proposal approved." : "Proposal rejected.") + "</b><p>" +
+      (decision === "approved" ? "Your approval is recorded. Applying code changes and GitHub publishing are separate operations and are not enabled yet." : "No game files were changed.") + "</p>";
+    status("Approval decision saved.");
+  } catch (error) {
+    buttons.forEach(button => button.disabled = false);
+    status(error.message, true);
+  }
+}
+async function openApprovals() {
+  shell("Approvals", "Review AI fix proposals. Approving records your decision; it does not yet edit or publish game files.", '<div class="tool-actions"><button class="primary" id="refreshApprovals">Refresh approvals</button><span id="workspaceStatus" class="tool-status"></span></div><div id="approvalList"><p class="muted">Loading approval requests…</p></div>');
+  async function load() {
+    const host = document.querySelector("#approvalList");
+    host.innerHTML = "<p class='muted'>Loading…</p>";
+    try {
+      const result = await api("/api/admin/approvals");
+      if (!result.approvals.length) { host.innerHTML = "<p class='muted'>No approval requests yet.</p>"; return; }
+      host.innerHTML = result.approvals.map(item => '<article class="result-item approval-card"><div><b>' + esc(item.title || "AI fix proposal") + '</b><small>' + esc(item.path || "") + ' · ' + esc(item.status) + '</small><p>' + esc(item.preview || "") + '</p>' + (item.status === "pending" ? '<button class="primary approve-queue" data-id="' + esc(item.id) + '">Approve</button> <button class="ghost reject-queue" data-id="' + esc(item.id) + '">Reject</button>' : '') + '</div></article>').join("");
+      host.querySelectorAll(".approve-queue").forEach(button => button.addEventListener("click", async () => { await decideApproval(button.dataset.id, "approved", button.parentElement); load(); }));
+      host.querySelectorAll(".reject-queue").forEach(button => button.addEventListener("click", async () => { await decideApproval(button.dataset.id, "rejected", button.parentElement); load(); }));
+      status(result.approvals.filter(x => x.status === "pending").length + " pending approval(s).");
+    } catch (error) { host.textContent = error.message; status(error.message, true); }
+  }
+  document.querySelector("#refreshApprovals").addEventListener("click", load);
+  await load();
+}
 function commitsMarkup(commits) {
   return '<div class="result-list">' + commits.map(item =>
     '<article class="result-item"><span class="commit-sha">' + esc(item.shortSha) + '</span><div><b>' + esc(item.message.split("\n")[0]) + '</b><small>' + esc(item.author) + ' · ' + esc(item.date || "") + '</small><p><a href="' + esc(item.url) + '" target="_blank" rel="noopener noreferrer">Open commit on GitHub ↗</a></p></div></article>'
@@ -223,7 +266,7 @@ async function openVersions() {
     finally { button.disabled = false; }
   });
 }
-const openers = { scanner: openScanner, bugs: openBugs, testing: openTesting, developer: openDeveloper, github: openGithub, versions: openVersions };
+const openers = { scanner: openScanner, bugs: openBugs, testing: openTesting, developer: openDeveloper, github: openGithub, versions: openVersions, approvals: openApprovals };
 
 function renderDashboard(user) {
   const nav = modules.map(item => '<a href="#' + item[0] + '" data-open="' + item[0] + '">' + item[3] + ' <span>' + item[1] + '</span></a>').join("");
