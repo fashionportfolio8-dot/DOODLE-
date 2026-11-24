@@ -20,7 +20,17 @@ const xpNeed = l => 100 * l;
 const TASK = {
   pr: null, active: [], completed: [], streak: 0, gainXp: 0, levelsGained: 0, toast: '', toastT: 0,
   prog() { if (!this.pr) { try { this.pr = JSON.parse(localStorage.getItem(TASK_KEY)); } catch (e) {} } if (!this.pr || !this.pr.level) this.pr = {level:1, xp:0, tasks:0}; return this.pr; },
-  save() { try { localStorage.setItem(TASK_KEY, JSON.stringify(this.prog())); } catch (e) {} },
+  save() {
+    const progress = this.prog();
+    try { localStorage.setItem(TASK_KEY, JSON.stringify(progress)); } catch (e) {}
+    const fb = window.DO_FIREBASE;
+    if (fb && fb.db && fb.user) {
+      fb.db.collection('players').doc(fb.user.uid).set({
+        level: progress.level, xp: progress.xp, tasks: progress.tasks || 0,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, {merge:true}).catch(err => console.warn('Firebase progress save failed:', err));
+    }
+  },
   unlocked(img) { const need = WEAPON_LEVEL[img]; return !need || this.prog().level >= need; },
   maxHp() { return 100 + (this.prog().level - 1) * 5; },
   fill() { const have = this.active.map(t => t.id); const pool = TASK_POOL.filter(t => !have.includes(t.id) && !this.completed.includes(t.id)); while (this.active.length < 3 && pool.length) { const i = Math.floor(Math.random() * pool.length); this.active.push({...pool.splice(i, 1)[0], p: 0}); } },
@@ -62,6 +72,40 @@ const TASK = {
     }
   }
 };
+
+/* Load cloud progress before the lobby is initialized. Local progress is retained
+   when it is ahead of the cloud copy, so an existing player does not lose progress. */
+window.TASK_CLOUD_READY = (async () => {
+  try {
+    const user = await window.DO_FIREBASE_READY;
+    if (!user || !window.DO_FIREBASE || !window.DO_FIREBASE.db) return false;
+    const ref = window.DO_FIREBASE.db.collection('players').doc(user.uid);
+    const snap = await ref.get();
+    const local = TASK.prog();
+    if (snap.exists) {
+      const remote = snap.data() || {};
+      const safeRemote = {
+        level: Math.max(1, Math.min(MAX_LEVEL, Number(remote.level) || 1)),
+        xp: Math.max(0, Number(remote.xp) || 0),
+        tasks: Math.max(0, Number(remote.tasks) || 0)
+      };
+      const total = p => (p.level - 1) * p.level * 50 + p.xp;
+      if (total(safeRemote) > total(local)) {
+        TASK.pr = safeRemote;
+        try { localStorage.setItem(TASK_KEY, JSON.stringify(safeRemote)); } catch (e) {}
+      } else {
+        TASK.save();
+      }
+    } else {
+      TASK.save();
+    }
+    return true;
+  } catch (err) {
+    console.warn('Firebase cloud progress unavailable; using this device:', err);
+    return false;
+  }
+})();
+
 function updLevel(){
   const p=TASK.prog(), need=p.level>=MAX_LEVEL?0:xpNeed(p.level), el=document.getElementById('lvl');
   if(el)el.textContent='LEVEL '+p.level+' · +'+((p.level-1)*5)+' BONUS HP';
