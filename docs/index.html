@@ -88,8 +88,9 @@
 <section id="settings" class="scr">
   <div class="top"><button class="btn" onclick="backFromSettings()">← BACK</button><h2>SETTINGS</h2><span></span></div>
   <div class="panel" style="display:flex;flex-direction:column;gap:14px;max-width:640px;width:100%;margin:auto;overflow:auto">
-    <b>GAME RULES &amp; CONTROLS</b>
-    <div class="panel" style="background:#0d1828;line-height:1.8">
+    <button class="btn" id="openRulesBtn" onclick="openGameRules()" style="font-size:18px;padding:18px">📖 &nbsp; GAME RULES</button>
+    <div id="gameRulesPanel" class="panel" style="display:none;background:#0d1828;line-height:1.8">
+      <h3 style="margin:0 0 8px">GAME RULES &amp; CONTROLS</h3>
       <b>PLAYER CONTROLS</b><br>
       Move: A / D or left-side joystick<br>
       Jump: Space or W<br>
@@ -100,6 +101,7 @@
       Pause: Esc
       <br><br><b>HOW TO PLAY</b><br>
       Defeat opponents, survive the match, complete tasks, and earn XP to level up and unlock weapons.
+      <div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn lime" onclick="closeGameRules()">DONE</button></div>
     </div>
     <b>GAME MENU</b>
     <div class="row settings-game-actions">
