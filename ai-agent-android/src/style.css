@@ -49,3 +49,5 @@
 .finding-fix-output:empty{display:none}
 
 .finding-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.inspect-finding{display:inline-flex;align-items:center;padding:9px 12px;border:1px solid #3b5268;border-radius:9px;background:#172a3b;color:#dce8f5;font:700 11px inherit;cursor:pointer}.inspect-finding:disabled{opacity:.6;cursor:wait}.finding-file-preview{display:none;max-height:260px;overflow:auto;margin:10px 0 0;padding:12px;border:1px solid #34495c;border-radius:9px;background:#08131e;color:#d4e1ed;font:10px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}.finding-file-preview:not(:empty){display:block}
+
+.approval-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin-top:14px;padding-top:12px;border-top:1px solid #34495c}.approval-actions b{width:100%;color:#f3c66d}.approval-actions p{width:100%;margin:0;color:#9db2c8}.approval-card{margin:10px 0}.approval-card button{margin:10px 7px 0 0}
