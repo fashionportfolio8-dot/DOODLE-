@@ -41,15 +41,81 @@ jobs:
           npm run build
           npx cap add android
           npx cap sync android
-      - name: Force landscape orientation
+      - name: Apply full-screen landscape and Doodle Outpost launcher icon
         working-directory: game-android-apk
         run: |
+          python3 -m pip install --quiet pillow
           python3 - <<'PY'
           from pathlib import Path
-          p = Path('android/app/src/main/AndroidManifest.xml')
-          s = p.read_text()
-          s = s.replace('android:exported="true"', 'android:exported="true" android:screenOrientation="landscape"', 1)
-          p.write_text(s)
+          from PIL import Image, ImageOps, ImageDraw
+          import re
+
+          root = Path("android/app/src/main")
+          manifest = root / "AndroidManifest.xml"
+          source = Path("www/assets/logo.png")
+          text = manifest.read_text()
+          text = re.sub(
+              r'android:exported="true"',
+              'android:exported="true" android:screenOrientation="landscape"',
+              text,
+              count=1
+          )
+          manifest.write_text(text)
+
+          # Hide Android system bars so the game uses the full landscape display.
+          java = root / "java/com/doodleoutpost/game/MainActivity.java"
+          java.parent.mkdir(parents=True, exist_ok=True)
+          java.write_text("""package com.doodleoutpost.game;
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.view.WindowInsets;
+          import android.view.WindowInsetsController;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+            @Override public void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+              hideSystemUI();
+            }
+            private void hideSystemUI() {
+              if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                getWindow().setDecorFitsSystemWindows(false);
+                WindowInsetsController c = getWindow().getInsetsController();
+                if (c != null) {
+                  c.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                  c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                }
+              } else {
+                getWindow().getDecorView().setSystemUiVisibility(
+                  View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                  View.SYSTEM_UI_FLAG_FULLSCREEN |
+                  View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                  View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                  View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                  View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                );
+              }
+            }
+            @Override public void onWindowFocusChanged(boolean hasFocus) {
+              super.onWindowFocusChanged(hasFocus);
+              if (hasFocus) hideSystemUI();
+            }
+          }
+          """)
+
+          # Reuse the game's own logo for Android launcher icons at every density.
+          logo = Image.open(source).convert("RGBA")
+          sizes = {"mdpi":48, "hdpi":72, "xhdpi":96, "xxhdpi":144, "xxxhdpi":192}
+          for density, size in sizes.items():
+            folder = root / f"res/mipmap-{density}"
+            folder.mkdir(parents=True, exist_ok=True)
+            canvas = Image.new("RGBA", (size, size), (11, 20, 32, 255))
+            contained = ImageOps.contain(logo, (int(size*.78), int(size*.78)), Image.Resampling.LANCZOS)
+            canvas.alpha_composite(contained, ((size-contained.width)//2, (size-contained.height)//2))
+            canvas.save(folder / "ic_launcher.png")
+            canvas.save(folder / "ic_launcher_round.png")
+          print("Applied immersive landscape mode and the Doodle Outpost logo.")
           PY
       - name: Build debug APK
         working-directory: game-android-apk/android
