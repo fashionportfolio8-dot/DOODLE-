@@ -57,8 +57,22 @@
  }
  `;
  document.head.appendChild(refStyle);
+ const battleHudStyle=document.createElement('style');
+ battleHudStyle.textContent=`
+ .do-tools{top:max(10px,env(safe-area-inset-top));right:12px;left:auto;gap:8px;z-index:48}
+ .do-tools .btn{min-height:40px;padding:8px 13px;border:2px solid #64748b;border-radius:10px;background:linear-gradient(180deg,#2b3a50,#111b2b);color:#f4f7fb;font-size:12px;font-weight:900;box-shadow:0 3px 0 #070d16,0 5px 12px #0008}
+ .do-tools #doTaskBtn{border:2px solid #ffe08a;background:linear-gradient(180deg,#ffdc5a,#e99b10);color:#251700}
+ .do-tools #taskBadge{background:#e13c43;color:#fff;border:1px solid #fff8}
+ .do-tools #pauseBtn{position:static!important;display:inline-flex!important;transform:none!important;left:auto!important;right:auto!important;top:auto!important}
+ .do-task-panel{top:64px;right:12px;width:min(350px,35vw);max-height:calc(100dvh - 78px);border:2px solid #61738b;border-radius:14px;background:linear-gradient(145deg,#1b2a3eF5,#0b1422F8);box-shadow:0 12px 35px #000b}
+ .do-task-head{border-bottom:1px solid #526176;padding-bottom:10px}.do-task-head small,.do-task-head h2{color:#ffd35a}
+ .do-task{background:#0e1928;border:1px solid #46566c}.do-task strong{color:#eaf1fb}.do-task-meta{color:#aebbd0}
+ .do-progress i{background:linear-gradient(90deg,#b8f53a,#f5a623)}
+ @media(max-width:760px){.do-tools{top:5px;right:5px;gap:4px}.do-tools .btn{min-height:32px;padding:5px 7px;font-size:9px}.do-task-panel{top:44px;right:5px;width:min(300px,70vw);max-height:65vh}}
+ `;
+ document.head.appendChild(battleHudStyle);
 
- const tools=document.createElement('div');tools.className='do-tools';tools.id='doTools';tools.innerHTML='<button class="btn" id="doTaskBtn">▤ TASKS <span id="taskBadge">3</span></button><button class="btn" id="doSettingsBtn">⚙ SETTINGS</button>';
+ const tools=document.createElement('div');tools.className='do-tools';tools.id='doTools';tools.innerHTML='<button class="btn" id="doTaskBtn">▤ TASKS <span id="taskBadge">3</span></button><button class="btn" id="doMicBtn">MIC: OFF</button>';
  const pause=$('pauseBtn');if(pause){pause.style.cssText='';pause.textContent='Ⅱ PAUSE';tools.appendChild(pause)}document.body.appendChild(tools);
  const brief=document.createElement('div');brief.id='missionBrief';brief.className='do-overlay';brief.style.display='none';
  brief.innerHTML='<div class="do-card"><div class="do-eyebrow">DOODLE OUTPOST · MISSION BRIEFING</div><h1 id="doMissionTitle">MISSION READY</h1><p id="doMissionDesc">Prepare your loadout and complete your objectives.</p><div class="do-stats"><div><small>MODE</small><b id="doMode"></b></div><div><small>ARENA</small><b id="doMap"></b></div><div><small>TIME</small><b>05:00</b></div></div><div class="do-objectives"><b>MISSION OBJECTIVES</b><div id="doObjectives"></div></div><div class="do-actions"><button class="btn" id="doSkip">SKIP</button><button class="btn do-start" id="doStart">START MISSION</button></div><div class="do-hint">The match timer starts when you press START or SKIP</div></div>';document.body.appendChild(brief);
@@ -74,7 +88,7 @@
  window.togglePause=function(){if(S.briefing)return;if(S.taskOpen){closeTasks();return}return oldToggle.apply(this,arguments)};
  $('doTaskBtn').onclick=()=>{if(S.briefing){panel.style.display=panel.style.display==='none'?'block':'none';return}if(!S.on)return;if(S.taskOpen){closeTasks();return}if(!S.paused)oldToggle();S.taskOpen=true;refreshTasks();panel.style.display='block';$('pauseov').style.display='none'};
  $('doTaskClose').onclick=closeTasks;
- $('doSettingsBtn').onclick=()=>{if(S.briefing)return;if(S.on&&!S.paused)oldToggle();panel.style.display='none';S.taskOpen=false;go('settings')};
+ $('doMicBtn').onclick=()=>{if(typeof toggleMicUI==='function')toggleMicUI()};
  const oldLeave=window.leaveGame;window.leaveGame=function(){brief.style.display='none';panel.style.display='none';tools.style.display='none';S.briefing=false;S.taskOpen=false;return oldLeave.apply(this,arguments)};
  const oldDone=TASK.done.bind(TASK);TASK.done=function(t){const r=oldDone(t);refreshTasks();return r};
  const oldBack=window.backFromSettings;window.backFromSettings=function(){oldBack.apply(this,arguments);if(S.on){tools.style.display=S.briefing?'none':'flex';$('pauseov').style.display=S.paused?'flex':'none'}};
