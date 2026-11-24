@@ -2,6 +2,7 @@ import "./style.css";
 import { auth, ADMIN_EMAIL } from "./firebase.js";
 import {
   onAuthStateChanged,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   signOut
 } from "firebase/auth";
@@ -105,9 +106,20 @@ onAuthStateChanged(auth, async (user) => {
     renderLogin();
     return;
   }
-  if ((user.email || "").toLowerCase() !== ADMIN_EMAIL || !user.emailVerified) {
+  if ((user.email || "").toLowerCase() !== ADMIN_EMAIL) {
     await signOut(auth);
-    renderLogin("Access denied. Use the authorized, verified admin account.");
+    renderLogin("Access denied. This account is not authorized.");
+    return;
+  }
+  if (!user.emailVerified) {
+    try {
+      await sendEmailVerification(user);
+      await signOut(auth);
+      renderLogin("A verification link was sent to your admin email. Verify it, then sign in again.");
+    } catch {
+      await signOut(auth);
+      renderLogin("Email verification is required. Check Firebase email settings and try again.");
+    }
     return;
   }
   renderDashboard(user);
