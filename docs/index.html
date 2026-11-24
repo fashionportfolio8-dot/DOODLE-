@@ -111,8 +111,10 @@
       <button class="btn" onclick="shopSoon()">🛒 SHOP</button>
       <button class="btn" onclick="openLoadout()">🔫 LOADOUT</button>
       <button class="btn" id="customControlsBtn" onclick="openCustomControls()">🎮 CUSTOM CONTROLS</button>
+      <button class="btn" id="wakeServerBtn" onclick="wakeRenderServer()" aria-label="Wake Render multiplayer server">☁ WAKE RENDER SERVER</button>
       <button class="btn" id="refreshGameBtn" onclick="refreshGameNow()" aria-label="Refresh game">↻ REFRESH GAME</button>
     </div>
+    <small id="serverWakeStatus" role="status" aria-live="polite" style="display:block;min-height:1.3em;color:var(--lime)">Multiplayer server status: not checked</small>
     <div style="display:flex;justify-content:flex-end;margin-top:4px">
       <button class="btn lime" onclick="backFromSettings()">DONE</button>
     </div>
