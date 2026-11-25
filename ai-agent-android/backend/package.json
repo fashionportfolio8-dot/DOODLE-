@@ -1,0 +1,18 @@
+{
+  "name": "doodle-outpost-ai-agent-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "firebase-admin": "^13.4.0",
+    "helmet": "^8.1.0",
+    "openai": "^5.12.2"
+  }
+}

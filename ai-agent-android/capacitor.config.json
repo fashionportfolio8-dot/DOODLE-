@@ -1,0 +1,6 @@
+{
+  "appId": "com.doodleoutpost.aiagent",
+  "appName": "DO AI Agent",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
