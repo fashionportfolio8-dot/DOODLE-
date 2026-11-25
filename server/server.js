@@ -5,7 +5,7 @@ const {Server} = require('socket.io');
 const PORT = process.env.PORT || 3000;
 const MAX_PLAYERS = 6;
 const START_DELAY_MS = 2000;
-const MODES = new Set(['ffa', 'tdm', 'zom', '1v1']); // keep in sync with DATA.modes in docs/js/data.js
+const MODES = new Set(['ffa', 'tdm', 'zom', '1v1', '2v2', '3v3']); // keep in sync with DATA.modes in docs/js/data.js
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O or 1/I, easier to read aloud
 
 const srv = http.createServer((req, res) => {
@@ -98,10 +98,16 @@ io.on('connection', (s) => {
     if (p) { p.mic = !!on; emitRoom(room); }
   });
 
-  bind('start', (d) => {
-    if (!room || room.host !== s.id) return;
+  bind('start', (d, cb) => {
+    if (!room || room.host !== s.id) return ack(cb, {ok:false, err:'Only the room leader can start the match.'});
     const mode = String((d && d.mode) || '');
-    if (!MODES.has(mode)) return;
+    if (!MODES.has(mode)) return ack(cb, {ok:false, err:'This game mode is not available on the server yet.'});
+    const count = room.players.size;
+    const required = mode === '1v1' ? 2 : mode === '2v2' ? 4 : mode === '3v3' ? 6 : 0;
+    if (required && count !== required) {
+      const label = mode === '1v1' ? '1 vs 1 needs exactly 2 players.' : mode === '2v2' ? '2 vs 2 needs exactly 4 players.' : '3 vs 3 needs exactly 6 players.';
+      return ack(cb, {ok:false, err:label});
+    }
     const map = clampNum(d && d.map, 0, 9, 0);
     let i = 0;
     for (const p of room.players.values()) p.team = i++ % 2;
@@ -109,6 +115,7 @@ io.on('connection', (s) => {
     room.pickups = new Map();
     // Clients start the match after this delay on their own clock, so device clock differences do not matter.
     io.to(room.code).emit('start', {mode, map, delay: START_DELAY_MS, players: list(room)});
+    ack(cb, {ok:true});
   });
 
   // Position, shot and effect packets are relayed to the other players in the room.
