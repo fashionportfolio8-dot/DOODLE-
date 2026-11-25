@@ -5,7 +5,7 @@ const {Server} = require('socket.io');
 const PORT = process.env.PORT || 3000;
 const MAX_PLAYERS = 6;
 const START_DELAY_MS = 2000;
-const MODES = new Set(['ffa', 'tdm', 'zom', '1v1', '2v2', '3v3']); // keep in sync with DATA.modes in docs/js/data.js
+const MODES = new Set(['ffa', 'tdm', '1v1', '2v2', '3v3']); // Zombie Survival is currently offline-only.
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O or 1/I, easier to read aloud
 
 const srv = http.createServer((req, res) => {
