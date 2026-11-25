@@ -50,8 +50,8 @@ DOODLE--main/
 
 ## Current status
 - Working: rooms with invite codes, live player movement, weapons (pistol, shotgun, sniper, rocket, chainsaw), grenades, medkit, shield and health, kill feed, scores, voice chat with mic on/off, offline practice vs one bot, sound effects and music.
-- Playable modes: Free For All and Team Deathmatch.
-- Next: the other 9 modes (zombies, flag capture, boss fight, battle royale zone, clan wars, 1v1, 2v2, 3v3, 1 vs 6 AI), smoke grenades, ammo box, body box, and map-specific platforms.
+- Playable modes: Free For All and Team Deathmatch; Zombie Survival is solo offline. Online 1 vs 1, 2 vs 2 and 3 vs 3 use server-enforced player counts.
+- Still planned: Capture the Flag, Boss Battle, Battle Royale, Clan Wars and 1 vs 6 AI, plus online zombie co-op, smoke grenades, ammo box, body box and map-specific platforms.
 
 ## Notes
 - Sound effects and music are simple generated placeholders. Replace the files in `docs/sounds/` and `docs/music/` with your own files, keeping the same names.
