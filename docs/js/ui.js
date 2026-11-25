@@ -54,7 +54,7 @@ function openJoin(){ const name = ($('pname').value || 'Commander').trim(); cons
   if (!connect()) return alert('Online connection library did not load. Check your internet connection and refresh the game.');
   if (code.length < 4) return alert('Enter the 4-letter room code');
   joinRoom(code, name, r => { if (!r.ok) return alert(r.err || 'Could not join'); go('room'); }); }
-function startOnlineMatch(){ const m = DATA.modes[SEL.mode]; startRoom(m.id, SEL.map); }
+function startOnlineMatch(){ const m = DATA.modes[SEL.mode]; startRoom(m.id, SEL.map, r => { if (!r || !r.ok) alert((r && r.err) || 'Could not start the match.'); }); }
 function startOffline(){ const m = DATA.modes[SEL.mode]; if (!m.ok) return;
   if (m.id === 'zom' && SEL.char !== 5 && SEL.char !== 7) return alert('Zombie Survival: choose Night Ops or Commando Red in the Armory first.');
   S.wi0 = SEL.wi;
