@@ -5,11 +5,11 @@ const GAME_VERSION = 'v1.0.14';
 const DATA = {
   chars: [['Frost','Fast jetpack refuel'],['Ice Ranger','Extra armor'],['Jungle Scout','Faster reload'],['Shadow','Quick movement'],['Sniper Lynx','Steadier aim'],['Night Ops','Sees through smoke'],['Desert Bear','Heavier health'],['Commando Red','Stronger melee'],['Medic','Heals teammates']],
   maps: ['Desert Base','Prison Yard','Scrapyard','Cave Mine','Underground Bunker','Jungle Village','Snow Base','Industrial Tunnel','Mountain Outpost','Abandoned Lab'],
-  // ok:1 = playable now. The other modes are next in the build plan.
+  // ok:1 = selectable. Zombie Survival is solo offline; team sizes are enforced by the online server.
   modes: [
     {id:'ffa',n:'Free For All',s:'Solo brawl',ok:1,kills:10,team:0},
     {id:'tdm',n:'Team Deathmatch',s:'Team brawl',ok:1,kills:25,team:1},
-    {id:'zom',n:'Zombie Survival',s:'10 waves · co-op',ok:1},{id:'ctf',n:'Capture The Flag',s:'Steal the flag'},
+    {id:'zom',n:'Zombie Survival',s:'10 waves · solo offline',ok:1},{id:'ctf',n:'Capture The Flag',s:'Steal the flag'},
     {id:'boss',n:'Boss Battle',s:'Outpost Titan'},{id:'br',n:'Battle Royale',s:'Last one standing'},
     {id:'clan',n:'Clan Wars',s:'Clan vs clan'},{id:'1v1',n:'1 vs 1',s:'Two players · first to 5',ok:1,kills:5,team:1},
     {id:'2v2',n:'2 vs 2',s:'Two-player teams · first to 20',ok:1,kills:20,team:1},{id:'3v3',n:'3 vs 3',s:'Three-player teams · first to 30',ok:1,kills:30,team:1},{id:'ai6',n:'1 vs 6 AI',s:'Overdrive'}
