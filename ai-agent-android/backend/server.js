@@ -37,6 +37,15 @@ const MODEL = process.env.OPENAI_MODEL || "gpt-6.2-astra";
 const GAME_REPO = "fashionportfolio8-dot/DOODLE-";
 const GAME_BRANCH = "main";
 const GITHUB_API = "https://api.github.com";
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN?.trim() || "";
+function githubHeaders() {
+  return {
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "Doodle-Outpost-AI-Agent",
+    ...(GITHUB_TOKEN ? { Authorization: "Bearer " + GITHUB_TOKEN } : {})
+  };
+}
 const TEXT_EXTENSIONS = /\.(html?|css|js|mjs|cjs|json|md|txt|yml|yaml)$/i;
 
 async function requireAdmin(req, res, next) {
@@ -56,7 +65,7 @@ async function requireAdmin(req, res, next) {
 
 async function githubJson(path) {
   const response = await fetch(GITHUB_API + path, {
-    headers: { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "Doodle-Outpost-AI-Agent" }
+    headers: githubHeaders()
   });
   if (!response.ok) throw new Error("GitHub read failed (" + response.status + ").");
   return response.json();
@@ -67,7 +76,7 @@ async function readGameFile(path) {
   }
   const encoded = path.split("/").map(encodeURIComponent).join("/");
   const response = await fetch("https://raw.githubusercontent.com/" + GAME_REPO + "/" + GAME_BRANCH + "/" + encoded, {
-    headers: { "User-Agent": "Doodle-Outpost-AI-Agent" }
+    headers: { ...githubHeaders(), Accept: "application/vnd.github.raw+json" }
   });
   if (!response.ok) throw new Error("Could not read that game file (" + response.status + ").");
   const text = await response.text();
@@ -212,12 +221,14 @@ app.post("/api/admin/game/review", requireAdmin, async (req, res) => {
 app.get("/api/admin/approvals", requireAdmin, async (req, res) => {
   try {
     const snapshot = await admin.firestore().collection("aiFixApprovals")
-      .where("uid", "==", req.admin.uid).orderBy("createdAt", "desc").limit(50).get();
+      .where("uid", "==", req.admin.uid).limit(100).get();
     const approvals = snapshot.docs.map(doc => {
       const data = doc.data();
       return { id: doc.id, path: data.path, title: data.title, preview: data.preview, status: data.status,
-        createdAt: data.createdAt?.toDate?.().toISOString() || null };
-    });
+        createdAt: data.createdAt?.toDate?.().toISOString() || null,
+        createdAtMs: data.createdAt?.toMillis?.() || 0 };
+    }).sort((a, b) => b.createdAtMs - a.createdAtMs).slice(0, 50)
+      .map(({ createdAtMs, ...approval }) => approval);
     res.set("Cache-Control", "no-store").json({ ok: true, approvals });
   } catch (error) { res.status(500).json({ error: "Could not load approval requests. " + (error.message || "") }); }
 });
