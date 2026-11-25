@@ -20,7 +20,7 @@ function connect(){
 }
 function createRoom(name, cb){ const s = connect(); if (!s) return cb({ok:false, err:'Server library not loaded'}); s.emit('create', {name}, r => { if (r.ok) NET.code = r.code; cb(r); }); }
 function joinRoom(code, name, cb){ const s = connect(); if (!s) return cb({ok:false, err:'Server library not loaded'}); s.emit('join', {code, name}, r => { if (r.ok) NET.code = r.code; cb(r); }); }
-function startRoom(mode, map){ if (NET.s) NET.s.emit('start', {mode, map}); }
+function startRoom(mode, map, cb){ if (!NET.s) { if (cb) cb({ok:false,err:'Not connected to the server.'}); return; } NET.s.emit('start', {mode, map}, r => { if (typeof cb === 'function') cb(r || {ok:false,err:'Server did not confirm the match start.'}); }); }
 // Leave the server room and close voice links; called from the room screen and when leaving an online match.
 function leaveRoom(){
   if (NET.s && NET.code) NET.s.emit('leave');
